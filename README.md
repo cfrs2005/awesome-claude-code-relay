@@ -186,7 +186,7 @@ export ANTHROPIC_BASE_URL="https://api.cubence.com"
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=your-username/awesome-claude-code-relay&type=Date)](https://star-history.com/#your-username/awesome-claude-code-relay&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=cfrs2005/awesome-claude-code-relay&type=Date)](https://star-history.com/#cfrs2005/awesome-claude-code-relay&Date)
 
 ---
 
