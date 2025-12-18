@@ -16,7 +16,7 @@
 | 推荐 | 服务商 | 类型 | 注册/官网 | API Base URL |
 |:---:|--------|:----:|:---------:|--------------|
 | ⭐⭐⭐⭐⭐ | **智谱 BigModel** | 商业 | [注册](https://www.bigmodel.cn/claude-code?ic=H0RNPV3LNZ) | `https://open.bigmodel.cn/api/anthropic` |
-| ⭐⭐⭐⭐⭐ | **Duckcoding** | 商业 | [注册](https://duckcoding.com/register?aff=zVon) | `https://jp.duckcoding.com` |
+| ⭐⭐⭐⭐⭐ | **Duckcoding** | 商业 | [注册](https://duckcoding.com/register?aff=zVon) | `https://duckcoding.com` |
 | ⭐⭐⭐⭐ | **Cubence** | 商业 | [注册](https://cubence.com/signup?code=SCJ7SAEL) | `https://cubence.com` |
 | ⭐⭐⭐⭐ | **FoxCode** | 商业 | [注册](https://foxcode.rjj.cc/auth/register?aff=1YMQW) | `https://foxcode.rjj.cc` |
 | ⭐⭐⭐⭐ | **CodeCli** | 商业 | [注册](https://code-cli.cn/user/register?invite=G28SUXSA) | `https://www.code-cli.cn/` |
