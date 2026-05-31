@@ -20,6 +20,7 @@
 | ⭐⭐⭐⭐ | **Cubence** | 商业 | [注册](https://cubence.com/signup?code=SCJ7SAEL) | `https://cubence.com` |
 | ⭐⭐⭐⭐ | **FoxCode** | 商业 | [注册](https://foxcode.rjj.cc/auth/register?aff=1YMQW) | `https://foxcode.rjj.cc` |
 | ⭐⭐⭐⭐ | **CodeCli** | 商业 | [注册](https://code-cli.cn/user/register?invite=G28SUXSA) | `https://www.code-cli.cn/` |
+| ⭐⭐⭐⭐ | **CoderPlan** | 商业 | [官网](https://coderplan.ai) | `https://coderplan.ai` |
 | ⭐⭐⭐ | **EasyChat** | 商业 | [注册](http://easychat.site/#/user/login?ref=516e9c1c-0369-4bd3-9ccc-1a53e225b1d0) | `https://wwww.easychat.site` |
 | ⭐⭐⭐ | **Anyrouter** | 公益 | [注册](https://anyrouter.top/register?aff=86mM) | `https://anyrouter.top` |
 | ⭐⭐⭐ | **Ikuncode** | 商业 | [官网](https://api.ikuncode.cc) | `https://www.ikuncode.cc` |
