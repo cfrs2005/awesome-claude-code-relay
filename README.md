@@ -37,6 +37,7 @@
 | ⭐⭐ | **Runanytime** | 商业 | [官网](https://runanytime.hxi.me) | `https://runanytime.hxi.me` |
 | ⭐⭐ | **YesCode** | 商业 | [官网](https://co.yes.vg) | `https://co.yes.vg` |
 | ⭐⭐ | **Elysiver** | 商业 | [官网](https://elysiver.h-e.top) | `https://elysiver.h-e.top` |
+| - | **Twinkle Model** | 商业 | [官网](https://big-model.smart-agi.com) | `https://big-model.smart-agi.com` |
 
 > 💡 推荐指数基于：可用性、延迟、稳定性、用户反馈综合评估
 
