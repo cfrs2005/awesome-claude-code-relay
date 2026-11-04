@@ -28,6 +28,7 @@
 <!-- providers:start -->
 | 验证状态 | 服务商 | 类型 | 官网 | API 端点（Anthropic 兼容） |
 |---|--------|:---:|------|------------------------------|
+| – 未验证 | 86GameStore | 商业 | [86gamestore.com](https://86gamestore.com) | `https://api.86gamestore.com` |
 | – 未验证 | 88code | 商业 | [www.88code.org](https://www.88code.org) | `—` |
 | – 未验证 | AICodeMirror | 商业 | [www.aicodemirror.com](https://www.aicodemirror.com) | `—` |
 | – 未验证 | AIMZ | 商业 | [mzlone.top](https://mzlone.top) | `—` |
