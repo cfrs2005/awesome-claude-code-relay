@@ -1,5 +1,13 @@
 name: Claude Code
 
+# GLM 驱动的 Claude Code Action：
+#  - @claude 提及 → 交互式指令（问答 / 分析 / 复核报告）
+#  - providers/** 的 PR 打开时 → 自动收录分诊（仅建议，无合并权限）
+#
+# 所需 Secrets（仓库 Settings → Secrets → Actions）:
+#   ANTHROPIC_BASE_URL : GLM 的 Anthropic 兼容端点，如 https://open.bigmodel.cn/api/anthropic
+#   GLM_API_KEY        : GLM API Key（ANTHROPIC_AUTH_TOKEN 方式传入）
+
 on:
   issue_comment:
     types: [created]
@@ -9,6 +17,10 @@ on:
     types: [opened, assigned]
   pull_request_review:
     types: [submitted]
+  pull_request:
+    types: [opened]
+    paths:
+      - "providers/**"
 
 jobs:
   claude:
@@ -20,9 +32,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: read
-      issues: read
-      id-token: write
+      pull-requests: write
+      issues: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -31,13 +42,46 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-      - name: Install @cloudbase/cli
-        run: npm install -g @cloudbase/cli
-      - name: Run Claude Code
-        id: claude
-        uses: anthropics/claude-code-action@beta
+          node-version: "20"
+      - name: Run Claude Code (GLM)
+        uses: anthropics/claude-code-action@v1
         env:
-          ANTHROPIC_BASE_URL: "${{ secrets.ANTHROPIC_BASE_URL }}"
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.GLM_API_KEY }}
+
+  # PR 打开即自动分诊：中文结论 + 推广参数标记（advisory only）
+  pr-triage:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
-          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          fetch-depth: 0
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Triage PR with Claude Code (GLM)
+        uses: anthropics/claude-code-action@v1
+        env:
+          ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
+          ANTHROPIC_AUTH_TOKEN: ${{ secrets.GLM_API_KEY }}
+        with:
+          prompt: |
+            你是「Claude Code 中转站社区目录」的收录分诊助手。本仓库原则：无 AFF、
+            收录不等于推荐、验证通过不等于安全。
+
+            请审查当前 PR 并用中文输出结构化结论（发布为 PR 评论）：
+            1. 变更范围：是否只修改了 providers/*.json（修改 workflow/脚本/README 的 PR 必须提示需维护者人工审查）。
+            2. 推广参数：逐个检查新增字符串里的 URL 是否含 aff/invite/ref/ic/code 等推广或返利参数，
+               发现即在标题标注「🚨 疑似推广参数」，这是本项目的一票否决项。
+            3. 字段合规：对照 providers/schema.json 与 CLAUDE.md 中的收录规则检查字段。
+            4. 明显可疑信号：website 与服务商名对不上、api_base 与官网域名毫无关联等。
+            5. 提交者是否已 Watch 本仓库无法由你判断，提醒其阅读 PR 模板自检清单即可。
+
+            重要约束：你的结论仅供参考，不能替代 Providers Check 工作流的确定性校验；
+            你没有任何合并权限，也绝不要建议绕过校验流程。

@@ -1,0 +1,18 @@
+{
+  "id": "teapotrouter",
+  "name": "TeapotRouter",
+  "type": "commercial",
+  "website": "https://teapotrouter.com",
+  "api_base": null,
+  "models_claimed": [],
+  "payment": [],
+  "price_note": "",
+  "notes": "历史为『待评估』，从未验证",
+  "added_at": "2026-11-04",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}

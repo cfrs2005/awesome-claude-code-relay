@@ -1,0 +1,108 @@
+name: Providers Check
+
+# 收录 PR 的确定性校验 + 自动合并。
+# 这是自动合并的唯一依据；Claude/GLM 的分诊结论仅供参考。
+#
+# 前置要求（仓库设置，一次性）:
+#   - Settings → General → Allow auto-merge: 开启
+#   - Branch protection (main): 将 Providers Check / providers-check 设为 required check
+#   - （可选）Secrets → MQ_BOT_TOKEN: 一个有 contents:write 的 PAT，用于 fork PR 的评论与自动合并
+#     （fork PR 的默认 GITHUB_TOKEN 是只读的；未配置时 fork PR 会降级为"校验通过、人工合并"）
+
+on:
+  pull_request:
+    paths:
+      - "providers/**"
+      - "README.md"
+      - ".github/workflows/providers-check.yml"
+
+permissions: {}
+
+jobs:
+  check:
+    name: providers-check
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      REPO: ${{ github.repository }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install jsonschema
+        run: pip install jsonschema
+
+      - name: Validate provider changes
+        id: validate
+        run: |
+          git fetch origin "${{ github.event.pull_request.head.ref }}" HEAD 2>/dev/null || true
+          python3 scripts/check_providers.py \
+            --base origin/"${{ github.event.pull_request.base.ref }}" \
+            --head "${{ github.event.pull_request.head.sha }}"
+
+      # 提交者必须已 Watch 本项目（repos/{repo}/subscribers 公开端点）
+      - name: Require author watches this repo
+        id: watch
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          echo "检查 @$PR_AUTHOR 是否已 Watch 本仓库..."
+          watchers=$(gh api --paginate -X GET "repos/$REPO/subscribers" --jq '.[].login' || true)
+          if printf '%s\n' "$watchers" | grep -qixF "$PR_AUTHOR"; then
+            echo "watched=true" >> "$GITHUB_OUTPUT"
+            echo "✅ @$PR_AUTHOR 已 Watch 本项目"
+          else
+            echo "watched=false" >> "$GITHUB_OUTPUT"
+            echo "❌ @$PR_AUTHOR 尚未 Watch 本项目（$REPO 的 subscribers 列表中未找到）"
+          fi
+
+      - name: Post result comment
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          VALIDATED: ${{ steps.validate.outcome }}
+          WATCHED: ${{ steps.watch.outputs.watched }}
+        run: |
+          set -euo pipefail
+          if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ]; then
+            body="✅ **Providers Check 通过**
+          - 条目校验：schema / 推广参数 / 重复 id / URL 检查均通过
+          - 提交者 @$PR_AUTHOR 已 Watch 本项目
+          - 满足自动合并条件（若分支保护要求本检查为 required，合并将在全部检查通过后自动执行）
+
+          提醒：收录 ≠ 推荐。如需触发 MQ 官方验证，请按 \`docs/verification-design.md\` 提交一次性临时 Key。"
+          elif [ "$VALIDATED" = "success" ] && [ "$WATCHED" != "true" ]; then
+            body="⚠️ **条目校验通过，但提交者未 Watch 本项目**
+          请 @$PR_AUTHOR 到仓库页面右上角 **Watch → All Activity** 关注本项目后，
+          在本 PR 下评论 \`/recheck\` 重新触发检查。未关注项目贡献者的 PR 不会被合并。"
+          else
+            body="❌ **Providers Check 未通过**，请查看 Checks → providers-check 的 Summary 修复后重新推送。
+          常见问题：包含 providers/ 之外的变更、URL 带推广参数、字段不符合 schema。"
+          fi
+          gh pr comment "$PR_NUMBER" --body "$body" || \
+            echo "::warning::评论失败（fork PR 且未配置 MQ_BOT_TOKEN 时属预期），结论以上方 Step Summary 为准"
+
+      - name: Gate
+        if: steps.validate.outcome != 'success' || steps.watch.outputs.watched != 'true'
+        run: |
+          echo "校验未通过或未 Watch，拒绝合并"
+          exit 1
+
+      - name: Enable auto-merge (squash)
+        if: steps.validate.outcome == 'success' && steps.watch.outputs.watched == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch \
+            || echo "::warning::自动合并开启失败（fork PR 未配置 MQ_BOT_TOKEN，或仓库未开启 auto-merge）——校验已通过，请维护者手动合并"

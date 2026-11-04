@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.mq-report.json
+.mq-report.md
+*.key
+.DS_Store

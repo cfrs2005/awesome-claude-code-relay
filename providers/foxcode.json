@@ -1,0 +1,18 @@
+{
+  "id": "foxcode",
+  "name": "FoxCode",
+  "type": "commercial",
+  "website": "https://foxcode.rjj.cc",
+  "api_base": null,
+  "models_claimed": [],
+  "payment": [],
+  "price_note": "",
+  "notes": "",
+  "added_at": "2026-11-04",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}

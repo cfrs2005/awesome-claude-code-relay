@@ -1,0 +1,39 @@
+name: Sync README
+
+# providers/** 合并进 main 后，自动从 JSON 重新生成 README 目录表。
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "providers/**"
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Rebuild providers table
+        run: python3 scripts/build_readme.py
+
+      - name: Commit if changed
+        run: |
+          git config user.name "mq-bot"
+          git config user.email "mq-bot@users.noreply.github.com"
+          if git diff --quiet README.md; then
+            echo "README 无需更新"
+          else
+            git add README.md
+            git commit -m "chore: sync README providers table [skip ci]"
+            git push
+          fi

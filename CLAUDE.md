@@ -1,43 +1,57 @@
-# Claude Code Configuration
+# CLAUDE.md
 
-This project is an awesome list of Claude Code / Claude API relay services.
+本仓库是 Claude Code / Claude API 中转站的**中立社区目录 + 自动化基础验证平台（MQ / ModelQuality）**。
 
-## Project Overview
+## 定位（给在此仓库工作的 AI 助手）
 
-- **Purpose**: Navigation guide for Claude Code relay services with real-time availability monitoring
-- **Type**: Information aggregation and affiliate project
-- **Language**: Chinese
-- **Focus**: Cost-effective Claude API access through verified relay services
+- **无 AFF**：任何链接（website / api_base / notes）不得包含 aff、invite、ref、ic、code 等推广或返利参数。历史版本曾带推广参数，2026-11 已全部清除；发现新增推广参数必须在审查中标为一票否决。
+- **收录 ≠ 推荐，验证通过 ≠ 安全**：禁止星级、排名、"稳定好用"式推荐话术。`models_claimed` 是服务商声称，不是事实。
+- 目录数据是结构化的：`providers/<id>.json`（schema：`providers/schema.json`）。README 的目录表由 `scripts/build_readme.py` 生成，**不要手改标记区内的表格**。
 
-## Key Files
+## 关键文件
 
-- `README.md` - Main documentation with relay service recommendations
+| 路径 | 作用 |
+|------|------|
+| `providers/*.json` | 服务商条目（每个服务商一个文件，id 与文件名一致） |
+| `providers/schema.json` | 条目 JSON Schema（自动校验依据） |
+| `mq/mq.py` | MQ 检测引擎：协议 / tokenizer 计数一致性 / TTFT/TPS / 稳定性 / 身份旁证 |
+| `scripts/check_providers.py` | PR 确定性校验（自动合并的唯一依据） |
+| `scripts/build_readme.py` | 从 providers/*.json 生成 README 目录表 |
+| `scripts/update_verification.py` | 验证完成后回写 verification 状态 |
+| `.github/workflows/providers-check.yml` | PR 校验 + Watch 检查 + 自动合并 |
+| `.github/workflows/claudecode.yml` | GLM 驱动的 Claude Code（@claude 交互 + PR 自动分诊） |
+| `.github/workflows/mq-verify.yml` | 官方验证执行器（一次性 Key，不落盘） |
+| `docs/verification-design.md` | 临时 Key 安全架构 |
 
-## Contribution Guidelines
+## PR 规则（AI 助手必须遵守的执行边界）
 
-### For Adding New Relay Services
+1. 提交者必须已 **Watch** 本仓库（由 providers-check 用 `repos/{repo}/subscribers` 端点核验）。未 Watch → 不合并。
+2. 自动合并**仅限** `providers/*.json` 且全部确定性检查通过；含 README / workflow / 脚本变更的 PR 一律转维护者人工审查。
+3. AI（@claude / GLM 分诊）的结论是**参考信息**，永远不能替代 `providers-check` 的确定性校验，AI 没有合并权限。
+4. 绝不在 PR、Issue、评论、日志中索要或粘贴 API Key。官方验证的 Key 一律走一次性 HTTPS 入口（见 docs/verification-design.md）。
+5. `mq-verify.yml` 只 checkout main 分支代码执行，绝不执行 PR head 的代码（防 pwn request）。
 
-1. Ensure the service is actively maintained and reliable
-2. Add affiliate links to the "注册" (Registration) column if available
-3. Update the official website URL in the "官网" (Official Website) column
-4. Rate based on: availability, latency, stability, and user feedback
-5. Keep entries in descending order of recommendation (⭐ count)
+## 必需 Secrets
 
-### For Updates
+| Secret | 用途 |
+|--------|------|
+| `ANTHROPIC_BASE_URL` | GLM 的 Anthropic 兼容端点（如 `https://open.bigmodel.cn/api/anthropic`） |
+| `GLM_API_KEY` | GLM API Key，经 `ANTHROPIC_AUTH_TOKEN` 供 Claude Code 使用 |
+| `MQ_BOT_TOKEN`（可选） | PAT，用于 fork PR 的评论/自动合并（fork PR 的默认 token 只读） |
 
-- Verify all URLs are current and working
-- Maintain affiliate link integrity - do not remove or modify aff parameters
-- Keep table formatting consistent
-- Update the last modified date in the README if needed
+## MQ 验证语义
 
-## Development Notes
+- `basic_passed` 基础验证通过：协议与行为特征正常（**不是**"安全"或"模型为真"的证明）
+- `behavior_anomaly` 行为异常：核心协议项失败
+- `identity_suspect` 身份存疑：tokenizer 计数不一致 / 与官方对照不符 / 身份旁证异常
+- `inconclusive` 证据不足、`unverified` 未验证、`pending` 验证中
 
-- This is an affiliate project - registration links contain tracking parameters
-- All external links should point to official websites or authenticated registration pages
-- Monitor relay service status regularly
-- Community contributions welcome via PR
+## 本地开发
 
-## Resources
+```bash
+python3 mq/mq.py --self-test                 # 引擎离线自检
+python3 scripts/build_readme.py              # 重新生成 README 目录表
+python3 scripts/check_providers.py --base origin/main --head <sha>   # 本地跑 PR 校验
+```
 
-- Monitoring Dashboard: https://www.80aj.com/llm-monitor/
-- License: MIT
+仓库语言：中文。License：MIT。
