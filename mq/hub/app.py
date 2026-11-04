@@ -491,24 +491,24 @@ def login_github():
 
 PAGE = """<!doctype html><html lang="zh"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MQ Hub — 中转站官方验证入口</title>
+<title>RelayQuality — PR 验证工作台</title>
 <style>
-:root{--bg:#0d1117;--fg:#e6edf3;--muted:#8b949e;--acc:#58a6ff;--ok:#3fb950;--warn:#d29922;--err:#f85149;--card:#161b22;--bd:#30363d}
-*{box-sizing:border-box}body{margin:0;font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
-.wrap{max-width:880px;margin:0 auto;padding:32px 20px 80px}
-h1{font-size:1.5em}a{color:var(--acc);text-decoration:none}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:18px 20px;margin:16px 0}
+:root{--bg:#f8f9ff;--fg:#0b1c30;--muted:#434655;--acc:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--card:#ffffff;--bd:#c3c6d7;--soft:#eff4ff}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 72px}
+h1{font-size:1.7em;letter-spacing:-.02em}a{color:var(--acc);text-decoration:none}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:18px 20px;margin:16px 0}
 .muted{color:var(--muted);font-size:.9em}
-.tag{display:inline-block;padding:1px 10px;border-radius:99px;font-size:.8em;border:1px solid var(--bd)}
+.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.8em;border:1px solid var(--bd);background:var(--soft)}
 .ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}
-button{background:#21262d;color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px 16px;cursor:pointer;font-size:.95em}
-button:hover{border-color:var(--acc)}button.primary{background:#1f6feb;border-color:#1f6feb}
-input{width:100%;background:#0d1117;color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:.95em;margin:4px 0 12px}
-code{background:#21262d;padding:1px 6px;border-radius:4px;font-size:.88em}
-.code-box{font-size:1.25em;font-weight:700;color:var(--ok);background:#010409;border:1px dashed var(--ok);border-radius:8px;padding:10px 14px;margin:10px 0;user-select:all}
+button{background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px 16px;cursor:pointer;font-size:.95em}
+button:hover{border-color:var(--acc);color:var(--acc)}button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
+input{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:.95em;margin:4px 0 12px}
+code{background:var(--soft);padding:1px 6px;border-radius:4px;font-size:.88em}
+.code-box{font-size:1.25em;font-weight:700;color:var(--ok);background:var(--soft);border:1px dashed var(--ok);border-radius:6px;padding:10px 14px;margin:10px 0;user-select:all}
 .prlink{display:inline-block;margin:8px 0 4px;font-weight:600}
 </style></head><body><div class="wrap">
-<h1>🔬 MQ Hub <span class="muted">— 中转站官方验证入口</span></h1>
+<h1>RelayQuality <span class="muted">— PR 验证工作台</span></h1>
 <p class="muted">临时 Key 仅存内存：一次性消费 · TTL_EXPIRE 分钟过期 · 绝不落盘 · 报告自动回贴 PR · 评论 /mq-done 自动合并。<br>
 收录 ≠ 推荐，验证通过 ≠ 安全。请提交<b>低额度、短有效期</b>的专用 Key，测试完成后立即吊销。</p>
 <div id="status" class="card">加载中…</div>
