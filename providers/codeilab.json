@@ -1,0 +1,18 @@
+{
+  "id": "codeilab",
+  "name": "CodeI Lab",
+  "type": "commercial",
+  "website": "https://www.codeilab.com",
+  "api_base": null,
+  "models_claimed": [],
+  "payment": [],
+  "price_note": "Paid usage-based plans: Trial $3/week, Plus $9.90/month, Pro $39.90/month, Ultra $99.90/month; no free plan.",
+  "notes": "Third-party GPT API gateway for coding agents serving GPT-6 Astra/Sol, GPT-6.1 Sol/Terra and GPT-5.6 Sol/Terra over OpenAI or Claude protocols. Independent of OpenAI. Operator-submitted.",
+  "added_at": "2026-11-04",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
