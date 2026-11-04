@@ -50,6 +50,7 @@
 POST /api/prs                    X-Hub-Token  # 注册（register-verify 调用）
 GET  /api/prs/{n}                X-Hub-Token  # 门禁查询（providers-check 调用，verified 动态计算）
 GET  /api/prs                    公开          # 待验证 PR 列表（不含任何 Key）
+GET  /pr/{n}                     公开          # 这个 PR 的专属验证工作台，可直接分享
 POST /api/prs/{n}/bind/start     公开          # 获取一次性绑定码
 POST /api/prs/{n}/bind/confirm   公开          # 校验 PR 评论中的绑定码 → 会话 Cookie
 POST /api/prs/{n}/key            会话（作者）  # 提交临时 Key {key, base_url?}
