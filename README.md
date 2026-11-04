@@ -36,6 +36,7 @@
 | – 未验证 | Anyrouter | 公益 | [anyrouter.top](https://anyrouter.top) | `—` |
 | – 未验证 | Code By AI | 商业 | [www.codebyai.net](https://www.codebyai.net) | `—` |
 | – 未验证 | CodeCli | 商业 | [www.code-cli.cn](https://www.code-cli.cn) | `—` |
+| – 未验证 | CodeI Lab | 商业 | [www.codeilab.com](https://www.codeilab.com) | `—` |
 | – 未验证 | CoderPlan | 商业 | [coderplan.ai](https://coderplan.ai) | `—` |
 | – 未验证 | Cubence | 商业 | [cubence.com](https://cubence.com) | `—` |
 | – 未验证 | Duckcoding | 商业 | [duckcoding.com](https://duckcoding.com) | `https://jp.duckcoding.com` |
