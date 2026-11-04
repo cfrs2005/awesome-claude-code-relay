@@ -31,7 +31,7 @@
 2. 自动合并**仅限** `providers/*.json` 且全部确定性检查通过；含 README / workflow / 脚本变更的 PR 一律转维护者人工审查。
 3. AI（@claude / GLM 分诊）的结论是**参考信息**，永远不能替代 `providers-check` 的确定性校验，AI 没有合并权限。
 4. 绝不在 PR、Issue、评论、日志中索要或粘贴 API Key。官方验证的 Key 一律走一次性 HTTPS 入口（见 docs/verification-design.md）。
-5. `mq-verify.yml` 只 checkout main 分支代码执行，绝不执行 PR head 的代码（防 pwn request）。
+5. 检测引擎只以 **main 分支部署副本**运行（服务器 /opt/mq-hub/engine/mq.py），绝不执行 PR head 的代码（防 pwn request）；Hub 不执行合并，合并只发生在 providers-check 全绿之后。
 
 ## 必需 Secrets
 
