@@ -1,0 +1,13 @@
+{
+  "id": "e2e-test",
+  "name": "E2E Smoke Test",
+  "type": "commercial",
+  "website": "https://example.com",
+  "api_base": "https://api.anthropic.com",
+  "models_claimed": ["claude-haiku-4-5-20251001"],
+  "payment": [],
+  "price_note": "",
+  "notes": "链路测试用，勿合并",
+  "added_at": "2026-11-04",
+  "verification": {"status": "unverified", "last_verified_at": null, "engine_version": null, "report_url": null}
+}
