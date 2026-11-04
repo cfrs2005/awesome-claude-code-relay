@@ -257,7 +257,8 @@ def api_list_prs():
     for b in sorted(store["prs"].values(), key=lambda x: -x["pr"]):
         out.append({"pr": b["pr"], "provider_id": b.get("provider_id"),
                     "api_base": b.get("api_base"), "author": b.get("author"),
-                    "kind": b.get("kind"), "result": public_result(b)})
+                    "kind": b.get("kind"), "model": b.get("model"),
+                    "result": public_result(b)})
     return {"prs": out}
 
 
@@ -518,12 +519,17 @@ async function boot() {
       : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + (res.base_mismatch?' + 端点不一致':'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
     let inner = `<b>#${b.pr} ${b.provider_id||''}</b> ${badge}` +
       (mine ? ' <span class="tag">我是作者</span>' : '') +
-      `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code>` +
+      `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code> · 测试模型 <code>${b.model||'claude-haiku-4-5'}</code>` +
       (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
-    if (mine && !res.verified) {
+    if (res.verified) {
+      if (mine) inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;
+    } else if (me && !mine) {
+      inner += `<hr style="border-color:var(--bd)"><span class="muted">此 PR 归 @${b.author||'?'}，仅作者本人可完成验证（你当前绑定身份：${me.login}）</span>`;
+    } else {
       inner += `<hr style="border-color:var(--bd)">
-      <div id="bind-${b.pr}"><button onclick="bindStart(${b.pr})">① 获取绑定码（身份验证）</button></div>
-      <div id="key-${b.pr}" style="display:none">
+      <div id="bind-${b.pr}" style="${me ? 'display:none' : ''}"><button class="primary" onclick="bindStart(${b.pr})">① 获取绑定码（验证我是 PR 作者）</button>
+      <span class="muted">仅 PR 作者能完成绑定：用提交 PR 的 GitHub 账号在 PR 下评论绑定码</span></div>
+      <div id="key-${b.pr}" style="${me ? '' : 'display:none'}">
         <label>临时 API Key（一次性，触发即焚）</label>
         <input id="k-${b.pr}" placeholder="sk-..." autocomplete="off">
         <label class="muted">覆盖端点（可选；留空 = PR 声明的 api_base；不一致会被拦截）</label>
@@ -531,8 +537,6 @@ async function boot() {
         <button onclick="submitKey(${b.pr})">② 提交 Key</button>
         <button class="primary" onclick="runTest(${b.pr})">③ 运行验证</button>
       </div>`;
-    } else if (mine && res.verified) {
-      inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;
     }
     inner += `<div id="m-${b.pr}" class="muted" style="margin-top:10px"></div>`;
     div.innerHTML = inner;
@@ -553,7 +557,8 @@ async function boot() {
       await j(`/api/prs/${pr}/bind/confirm`, {method:'POST'});
       document.getElementById('bind-'+pr).style.display='none';
       document.getElementById('key-'+pr).style.display='block';
-      m.innerHTML = '<span class="ok">✅ 身份已绑定（7 天有效）</span>';
+      m.innerHTML = '<span class="ok">✅ 身份已绑定（7 天有效），可直接提交 Key</span>';
+      setTimeout(boot, 800);
     } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
   };
   window.submitKey = async (pr) => {
