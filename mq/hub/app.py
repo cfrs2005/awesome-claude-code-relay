@@ -261,10 +261,12 @@ def api_list_prs():
         store = load_store()
     out = []
     for b in sorted(store["prs"].values(), key=lambda x: -x["pr"]):
+        state = pr_info(b.get("repo") or REPO, b["pr"]).get("state", "unknown")
         out.append({"pr": b["pr"], "provider_id": b.get("provider_id"),
                     "api_base": b.get("api_base"), "author": b.get("author"),
                     "kind": b.get("kind"), "model": b.get("model"),
                     "repo": b.get("repo") or REPO,
+                    "pr_state": state,
                     "verification_url": verification_url(b["pr"]),
                     "result": public_result(b)})
     return {"prs": out}
@@ -290,6 +292,7 @@ def api_get_pr(pr: int, request: Request):
         "author": binding["author"],
         "kind": binding["kind"],
         "requires_verification": binding["requires_verification"],
+        "pr_state": pr_info(binding["repo"], pr).get("state", "unknown"),
         "verification_url": verification_url(pr),
         "key_ready": str(pr) in KEYS and KEYS[str(pr)]["exp"] > time.time(),
         "result": public_result(binding),
@@ -536,15 +539,20 @@ async function boot() {
     window.PRMAP[b.pr] = b;
     const res = b.result || {};
     const mine = me && me.login && b.author && me.login.toLowerCase() === b.author.toLowerCase();
+    const prState = b.pr_state || 'unknown';
+    const stateTag = prState === 'open' ? '' : '<span class="tag">已归档</span>';
     const div = document.createElement('div'); div.className = 'card';
     const badge = res.verified ? '<span class="tag ok">✅ 已通过</span>'
       : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + (res.base_mismatch?' + 端点不一致':'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
     let inner = `<b><a href="https://github.com/${b.repo||'cfrs2005/awesome-claude-code-relay'}/pull/${b.pr}" target="_blank" rel="noopener">#${b.pr} ${b.provider_id||''} ↗</a></b> ${badge}` +
+      stateTag +
       (mine ? ' <span class="tag">我是作者</span>' : '') +
       `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code> · 测试模型 <code>${b.model||'claude-haiku-4-5'}</code>` +
       `<br><span class="muted">PR 验证地址 <code>${b.verification_url || (location.origin + '/pr/' + b.pr)}</code> · <button onclick="navigator.clipboard.writeText('${b.verification_url || ''}')">复制地址</button></span>` +
       (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
-    if (res.verified) {
+    if (prState !== 'open') {
+      inner += `<hr style="border-color:var(--bd)"><span class="err">PR 当前状态 <code>${prState}</code>，验证入口已关闭。请创建新的 PR 后重新提测。</span>`;
+    } else if (res.verified) {
       if (mine) inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;
     } else if (me && !mine) {
       inner += `<hr style="border-color:var(--bd)"><span class="muted">此 PR 归 @${b.author||'?'}，仅作者本人可完成验证（你当前绑定身份：${me.login}）</span>`;
