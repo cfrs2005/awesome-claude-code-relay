@@ -248,7 +248,7 @@ def probe_basic(client, model, rep):
 def probe_consistency(rep, client, model, rounds=4, official_client=None):
     """同一请求重复 N 次：input_tokens 必须完全一致（服务端 tokenizer 是确定性的）。
     换壳/混轮上游最常见的破绽就在这里：不同 tokenizer 计数不同。"""
-    totals, texts = [], []
+    totals = []
     for _ in range(rounds):
         r = client.post_messages(_basic_payload(model, "Consistency probe: reply 'OK'.", 32))
         if r.get("ok"):
@@ -320,9 +320,6 @@ def probe_stream(client, model, rep):
             if isinstance(u, int):
                 out_tokens = u
             break
-    ttft = round((first_delta - (events[0]["t"] - 0)) , 3) if first_delta else None
-    # 更准确的 ttft：以首个事件之前的请求起点近似 —— 用 events[0].t - r.elapsed 回推
-    req_start = events[0]["t"] - r["elapsed"] if events else None
     ttft = round(first_delta - req_start, 3) if (first_delta and req_start) else None
     span = round(last - first_delta, 3) if (first_delta and last) else None
     tps = round(out_tokens / span, 1) if (out_tokens and span and span > 0.05) else None
