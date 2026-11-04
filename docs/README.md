@@ -6,6 +6,8 @@
 |------|------|
 | [verification-design.md](verification-design.md) | MQ 官方验证架构、威胁模型、Hub API、关键安全属性 |
 | [2026-11-04-comment-self-trigger-loop.md](2026-11-04-comment-self-trigger-loop.md) | 事故复盘：providers-check 评论自触发死循环（`/mq-done` 全文字匹配 + PAT 评论回灌），含修复与可复用自查清单 |
+| [2026-11-04-release-cutover-and-legacy-migration.md](2026-11-04-release-cutover-and-legacy-migration.md) | 发布切换点、历史条目一次性迁移 PR/MR、每个 PR 的专属验证地址与新规则 |
+| [2026-11-04-legacy-pr-inventory.md](2026-11-04-legacy-pr-inventory.md) | 发布切换前历史 PR 清单、状态和重新提交规则 |
 
 ## 命名约定
 

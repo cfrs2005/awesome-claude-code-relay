@@ -26,6 +26,8 @@
 | `docs/verification-design.md` | Hub 架构、威胁模型（公开透明文档） |
 | `docs/README.md` | docs 索引；新增文档按 `YYYY-MM-DD-<english-kebab>.md` 命名并登记 |
 
+每个已注册 PR 都有一个固定的验证工作台地址：`https://mq.80aj.com/pr/<PR号>`。`register-verify`、Hub API、验证报告和 PR 评论必须使用同一个地址，不能要求作者在全局 PR 列表中寻找自己的记录。
+
 > 运维细节（服务器、密钥清单、操作手册）在**本地私有目录** `docs-private/`（已 gitignore，绝不入库）。
 
 ## PR 规则（AI 助手必须遵守的执行边界）

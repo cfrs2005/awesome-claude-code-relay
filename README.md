@@ -98,8 +98,8 @@ python3 mq.py --base-url https://api.example.com --key sk-your-key
 
 新收录条目必须完成 MQ 官方验证，入口：**https://mq.80aj.com**
 
-1. 提 PR 后，Action 自动把 PR 声明的 `api_base` 注册到验证 Hub，并在 PR 下发指引评论
-2. **PR 作者**用 GitHub 登录 Hub → 提交**一次性临时 Key**（仅存内存，20 分钟过期，触发即焚）→ 点击运行验证
+1. 提 PR 后，Action 自动把 PR 声明的 `api_base` 注册到验证 Hub，并在 PR 下发这个 PR 的专属验证地址（`https://mq.80aj.com/pr/<PR号>`）
+2. **PR 作者**打开这个专属地址 → 完成绑定 → 提交**一次性临时 Key**（仅存内存，20 分钟过期，触发即焚）→ 点击运行验证
 3. 引擎在服务端执行，报告自动回贴 PR，`verification` 状态自动更新
 4. 实测端点必须与 PR 声明的 `api_base` 完全一致（防"测 A 卖 B"），验证通过 + 全部检查通过后自动合并
 

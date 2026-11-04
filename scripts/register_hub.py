@@ -97,12 +97,13 @@ def main():
         return 1
 
     lines = []
+    verify_url = f"{hub}/pr/{args.pr}"
     if kind == "new":
         lines.append("## 🔬 MQ 官方验证（新收录必做）")
         lines.append("")
-        lines.append(f"本 PR 已注册到 MQ Hub，验证入口：**{hub}/**")
+        lines.append(f"本 PR 已注册到 MQ Hub，专属验证地址：**{verify_url}**")
         lines.append("")
-        lines.append("1. 打开 Hub 入口，找到本 PR 的面板，点击 **获取绑定码**")
+        lines.append("1. 打开这个 PR 专属地址，点击 **获取绑定码**")
         lines.append("2. 用**提交本 PR 的 GitHub 账号**在 PR 下评论该绑定码（GitHub 即身份证明，无需任何 token/OAuth）")
         lines.append("3. 回到 Hub 确认绑定 → 提交**一次性临时 Key**（低额度、短有效期；仅存内存，20 分钟过期，触发即焚）")
         lines.append("4. 在 Hub 点击 **运行验证** —— 报告会自动回贴到本 PR")
@@ -115,7 +116,7 @@ def main():
     else:
         lines.append("## 🔬 MQ Hub")
         lines.append("")
-        lines.append(f"条目变更已同步到 MQ Hub（{hub}/）。如需重新验证，可在 Hub 重新提交临时 Key 触发。")
+        lines.append(f"条目变更已同步到 MQ Hub（{verify_url}）。如需重新验证，可在该 PR 专属地址重新提交临时 Key 触发。")
     pathlib.Path(args.out).write_text("\n".join(lines) + "\n", encoding="utf-8")
     print(f"comment written to {args.out}")
     return 0

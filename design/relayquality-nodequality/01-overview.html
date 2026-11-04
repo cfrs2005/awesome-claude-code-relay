@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RelayQuality · Anthropic API 兼容中转客观黑盒质量观测索引</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#dce9ff",
+            "on-primary-container": "#eeefff",
+            "inverse-surface": "#213145",
+            "on-primary": "#ffffff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-tertiary": "#ffffff",
+            "tertiary": "#4d556b",
+            "on-error-container": "#93000a",
+            "on-secondary-fixed-variant": "#004e61",
+            "surface-tint": "#0053db",
+            "on-secondary": "#ffffff",
+            "surface-container-lowest": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "surface-container-low": "#eff4ff",
+            "primary-container": "#2563eb",
+            "primary": "#004ac6",
+            "background": "#f8f9ff",
+            "error-container": "#ffdad6",
+            "primary-fixed-dim": "#b4c5ff",
+            "on-tertiary-container": "#eef0ff",
+            "surface-container": "#e5eeff",
+            "tertiary-fixed": "#dae2fd",
+            "on-tertiary-fixed-variant": "#3f465c",
+            "on-surface": "#0b1c30",
+            "surface-variant": "#d3e4fe",
+            "on-surface-variant": "#434655",
+            "secondary-fixed": "#b7eaff",
+            "secondary-container": "#76dcff",
+            "primary-fixed": "#dbe1ff",
+            "on-primary-fixed": "#00174b",
+            "on-background": "#0b1c30",
+            "surface": "#f8f9ff",
+            "outline": "#737686",
+            "on-error": "#ffffff",
+            "outline-variant": "#c3c6d7",
+            "tertiary-container": "#656d84",
+            "surface-bright": "#f8f9ff",
+            "secondary": "#006780",
+            "on-primary-fixed-variant": "#003ea8",
+            "surface-container-highest": "#d3e4fe",
+            "on-tertiary-fixed": "#131b2e",
+            "on-secondary-fixed": "#001f28",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed-dim": "#bec6e0",
+            "secondary-fixed-dim": "#6cd3f7",
+            "on-secondary-container": "#006077",
+            "error": "#ba1a1a"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "space-md": "0.5rem",
+            "space-sm": "0.375rem",
+            "space-lg": "0.75rem",
+            "margin": "1rem",
+            "margin-desktop": "1.5rem",
+            "gutter-desktop": "1rem",
+            "space-xl": "1rem",
+            "gutter": "0.75rem"
+          },
+          "fontFamily": {
+            "body-sm": ["Inter"],
+            "label-table-head": ["Inter"],
+            "body-md": ["Inter"],
+            "mono-metric-lg": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "mono-badge": ["JetBrains Mono"],
+            "headline-xl": ["Inter"],
+            "mono-data-sm": ["JetBrains Mono"],
+            "mono-metric-md": ["JetBrains Mono"],
+            "headline-xl-mobile": ["Inter"],
+            "headline-lg": ["Inter"]
+          },
+          "fontSize": {
+            "body-sm": ["13px", {"lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400"}],
+            "label-table-head": ["12px", {"lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600"}],
+            "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400"}],
+            "mono-metric-lg": ["24px", {"lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+            "headline-sm": ["16px", {"lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+            "mono-badge": ["11px", {"lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600"}],
+            "headline-xl": ["30px", {"lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+            "mono-data-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400"}],
+            "mono-metric-md": ["15px", {"lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500"}],
+            "headline-xl-mobile": ["24px", {"lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600"}],
+            "headline-lg": ["22px", {"lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600"}]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    .tabular-nums {
+      font-variant-numeric: tabular-nums;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md text-body-md antialiased min-h-screen selection:bg-surface-variant selection:text-primary">
+<!-- ========================================================================= -->
+<!-- 1. LEFT STRUCTURAL RAIL (SideNavBar Component JSON Implementation)        -->
+<!-- ========================================================================= -->
+<aside class="w-56 h-screen fixed left-0 top-0 flex flex-col z-40 bg-surface-container-lowest border-r border-outline-variant select-none">
+<!-- Sidebar Header -->
+<div class="h-16 px-space-lg flex items-center gap-space-sm border-b border-outline-variant bg-surface-container-lowest shrink-0">
+<div class="w-7 h-7 rounded-lg bg-inverse-surface flex items-center justify-center text-surface-container-lowest shrink-0">
+<span class="material-symbols-outlined text-[16px] text-surface-container-lowest" data-icon="terminal">terminal</span>
+</div>
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight truncate">RelayQuality</span>
+<span class="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-mono-badge bg-surface-container-low text-primary border border-outline-variant">LIVE</span>
+</div>
+<span class="font-body-sm text-[10px] leading-tight text-on-surface-variant truncate">v0.9.4-rc2 · commit 7d9a1f4</span>
+</div>
+</div>
+<!-- Navigation List (Strict matching Active Item: 质量总览) -->
+<nav class="flex-1 py-space-md px-space-sm space-y-1 overflow-y-auto">
+<!-- Item 1: 质量总览 (Active State mapped via JSON style_active_navigation) -->
+<a class="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg bg-surface-container text-primary font-headline-sm text-body-sm transition-colors duration-150" href="#overview">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="dashboard" data-weight="fill">dashboard</span>
+<span class="truncate">质量总览</span>
+</a>
+<!-- Item 2: 服务商 (Inactive State) -->
+<a class="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 font-body-sm text-body-sm" href="#providers">
+<span class="material-symbols-outlined text-[18px]" data-icon="dns">dns</span>
+<span class="truncate">服务商</span>
+</a>
+<!-- Item 3: 验证说明 (Inactive State) -->
+<a class="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 font-body-sm text-body-sm" href="#methodology">
+<span class="material-symbols-outlined text-[18px]" data-icon="fact_check">fact_check</span>
+<span class="truncate">验证说明</span>
+</a>
+<!-- Item 4: 提交服务商 (Inactive State) -->
+<a class="w-full flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 font-body-sm text-body-sm" href="#submit">
+<span class="material-symbols-outlined text-[18px]" data-icon="add_box">add_box</span>
+<span class="truncate">提交服务商</span>
+</a>
+<!-- CTA Button from JSON -->
+<div class="pt-space-md px-1">
+<button class="w-full flex items-center justify-center gap-1.5 py-1.5 px-space-md rounded-lg bg-surface-container-low text-primary border border-outline-variant hover:bg-surface-container transition-colors text-body-sm font-label-table-head">
+<span class="material-symbols-outlined text-[15px]" data-icon="add_box">add_box</span>
+<span>提交服务商</span>
+</button>
+</div>
+</nav>
+<!-- Sidebar Bottom Meta & Telemetry -->
+<div class="p-space-md border-t border-outline-variant bg-surface-container-lowest shrink-0 space-y-2.5">
+<!-- Live Probe Heartbeat Indicator -->
+<div class="p-2 rounded-lg bg-surface border border-outline-variant text-[11px] space-y-1">
+<div class="flex items-center justify-between font-label-table-head text-on-surface">
+<span class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-secondary-container relative flex">
+<span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
+<span class="relative inline-flex rounded-full h-2 w-2 bg-secondary"></span>
+</span>
+<span>东京探针集群</span>
+</span>
+<span class="font-mono-data-sm text-[10px] text-tertiary">120s 自动轮询</span>
+</div>
+<div class="font-mono-data-sm text-[10px] text-on-surface-variant flex justify-between">
+<span>Linode Lin-01</span>
+<span class="text-secondary font-medium">RTT 1.8ms</span>
+</div>
+</div>
+<!-- Footer Action Links from JSON: 状态图例 & 系统说明 -->
+<div class="flex items-center justify-between text-body-sm text-on-surface-variant px-1 pt-1 font-body-sm text-[11px]">
+<a class="flex items-center gap-1 hover:text-on-surface transition-colors" href="#legend">
+<span class="material-symbols-outlined text-[14px]" data-icon="info">info</span>
+<span>状态图例</span>
+</a>
+<a class="flex items-center gap-1 hover:text-on-surface transition-colors" href="#system">
+<span class="material-symbols-outlined text-[14px]" data-icon="terminal">terminal</span>
+<span>系统说明</span>
+</a>
+</div>
+</div>
+</aside>
+<!-- ========================================================================= -->
+<!-- 2. TOP UTILITY HEADER (TopNavBar Component JSON Implementation)          -->
+<!-- ========================================================================= -->
+<header class="h-16 pl-56 w-full fixed top-0 left-0 z-30 flex items-center bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex justify-between items-center h-16 px-margin-desktop w-full gap-4">
+<!-- Search Input on Left -->
+<div class="flex-1 max-w-md relative">
+<span class="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-on-surface-variant text-[16px]" data-icon="search">search</span>
+<input class="w-full h-8 pl-8 pr-3 bg-surface-container-lowest border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface placeholder:text-outline focus:border-primary focus:ring-1 focus:ring-primary focus:outline-none transition-all" placeholder="搜索端点 Host / 服务商名 / 测试批次 ID..." type="search"/>
+</div>
+<!-- Right Trailing Cluster -->
+<div class="flex items-center gap-3 shrink-0">
+<!-- Probe Status Telemetry Pill -->
+<div class="hidden xl:flex items-center gap-2 px-2.5 py-1 rounded-lg bg-surface border border-outline-variant text-[12px] font-body-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+<span class="text-on-surface-variant">统一探针:</span>
+<span class="font-label-table-head text-on-surface">东京节点 (v0.9.4)</span>
+</div>
+<!-- Sync Batch Timestamp -->
+<div class="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface border border-outline-variant font-mono-data-sm text-[11px] text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]" data-icon="schedule">schedule</span>
+<span>批次: <span class="text-on-surface">2026-11-04 14:32:08 UTC+8</span></span>
+</div>
+<!-- Trailing Secondary: Region Selector -->
+<div class="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-surface border border-outline-variant text-[12px] font-label-table-head text-on-surface">
+<span class="material-symbols-outlined text-[15px] text-tertiary" data-icon="public">public</span>
+<span>Asia-East (HKG)</span>
+</div>
+<!-- Icon Actions: Refresh & Source Code -->
+<div class="flex items-center gap-1">
+<button class="w-8 h-8 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center" title="强制触发探针回执轮询">
+<span class="material-symbols-outlined text-[16px]" data-icon="refresh">refresh</span>
+</button>
+<button class="w-8 h-8 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors flex items-center justify-center" title="查看探针哈希测试用例源码">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+</button>
+</div>
+<!-- Trailing Primary Action: GitHub Repo Link -->
+<a class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container text-primary border border-outline-variant hover:bg-surface-container-high transition-colors font-label-table-head text-body-sm" href="https://github.com" rel="noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+<span>GitHub</span>
+</a>
+</div>
+</div>
+</header>
+<!-- ========================================================================= -->
+<!-- 3. MAIN CONTENT CANVAS                                                    -->
+<!-- ========================================================================= -->
+<main class="pl-56 pt-20 pb-16 px-margin-desktop min-h-screen">
+<div class="max-w-7xl mx-auto space-y-6">
+<!-- 3.1 Neutral Statement & Public Disclosure Banner -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 relative overflow-hidden">
+<div class="flex flex-col md:flex-row md:items-start justify-between gap-4">
+<div class="space-y-2 max-w-3xl">
+<div class="flex items-center gap-2">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-label-table-head bg-surface-container text-primary border border-outline-variant">
+<span class="material-symbols-outlined text-[13px]" data-icon="verified_user">verified_user</span>
+                中立观测准则
+              </span>
+<span class="text-tertiary text-body-sm font-mono-data-sm">Anthropic Claude Code / Messages 规范校验</span>
+</div>
+<h1 class="font-headline-xl text-headline-xl text-on-surface tracking-tight">
+              免费、开放、无 AFF 的中转站质量测试站
+            </h1>
+<p class="font-body-md text-body-md text-on-surface-variant leading-relaxed">
+              面向 Claude Code 与 Anthropic 兼容端点的客观黑盒质量观测平台。仅展示探针测得的协议符合性与网络指标，不代表安全性或底层模型真伪背书。本站所有测试逻辑与 raw dump 均透明公布。
+            </p>
+</div>
+<!-- Strict Metric Trust Anchors -->
+<div class="flex flex-wrap md:flex-col gap-2 shrink-0 justify-end">
+<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface border border-outline-variant text-[12px] font-label-table-head text-on-surface">
+<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="check_circle">check_circle</span>
+<span>数据来自统一探针</span>
+</div>
+<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface border border-outline-variant text-[12px] font-label-table-head text-on-surface">
+<span class="material-symbols-outlined text-primary text-[16px]" data-icon="block">block</span>
+<span>无商业推广 (No AFF)</span>
+</div>
+<div class="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-surface border border-outline-variant text-[12px] font-label-table-head text-on-surface">
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="autorenew">autorenew</span>
+<span>每日自动轮询 (48 轮/日)</span>
+</div>
+</div>
+</div>
+</section>
+<!-- 3.2 Key Performance Indicators (KPI Grid) -->
+<section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+<!-- KPI 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 space-y-1">
+<div class="flex items-center justify-between text-on-surface-variant font-label-table-head text-[12px]">
+<span>已收录端点</span>
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="dns">dns</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface tabular-nums">42</span>
+<span class="font-mono-data-sm text-[11px] text-secondary font-medium">今日 +2</span>
+</div>
+<p class="font-body-sm text-[11px] text-tertiary truncate">覆盖主流公立 / 自建 / 聚合服务</p>
+</div>
+<!-- KPI 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 space-y-1">
+<div class="flex items-center justify-between text-on-surface-variant font-label-table-head text-[12px]">
+<span>24H 完成测试轮次</span>
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="history">history</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface tabular-nums">1,344</span>
+<span class="font-mono-data-sm text-[11px] text-on-surface-variant">次探测</span>
+</div>
+<p class="font-body-sm text-[11px] text-tertiary truncate">单节点 20min 轮询 · 完整消息握手</p>
+</div>
+<!-- KPI 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 space-y-1">
+<div class="flex items-center justify-between text-on-surface-variant font-label-table-head text-[12px]">
+<span>基础协议通过率</span>
+<span class="material-symbols-outlined text-secondary text-[16px]" data-icon="task_alt">task_alt</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-metric-lg text-mono-metric-lg text-secondary tabular-nums">68.2%</span>
+<span class="font-mono-data-sm text-[11px] text-tertiary font-medium">28 / 41 端点</span>
+</div>
+<p class="font-body-sm text-[11px] text-tertiary truncate">通过完整 SSE 块与格式校验</p>
+</div>
+<!-- KPI 4 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3.5 space-y-1">
+<div class="flex items-center justify-between text-on-surface-variant font-label-table-head text-[12px]">
+<span>最近测试批次</span>
+<span class="material-symbols-outlined text-tertiary text-[16px]" data-icon="alarm">alarm</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-mono-metric-lg text-mono-metric-lg text-on-surface tabular-nums">14:30:00</span>
+<span class="font-mono-data-sm text-[11px] text-primary font-medium">120s 前</span>
+</div>
+<p class="font-body-sm text-[11px] text-tertiary truncate">东京探针集群回执完成并落库</p>
+</div>
+</section>
+<!-- 3.3 Dense Filter & Matrix Sorting Toolbar -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-lg p-3 space-y-3">
+<div class="flex flex-wrap items-center justify-between gap-3">
+<!-- Status Filter Tabs -->
+<div class="flex flex-wrap items-center gap-1.5">
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container text-primary border border-outline-variant">
+              全部 <span class="font-mono-data-sm ml-1 text-xs">42</span>
+</button>
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors">
+              基础协议通过 <span class="font-mono-data-sm ml-1 text-xs text-secondary font-medium">28</span>
+</button>
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors">
+              验证中 <span class="font-mono-data-sm ml-1 text-xs text-primary font-medium">4</span>
+</button>
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors">
+              行为异常 <span class="font-mono-data-sm ml-1 text-xs text-error font-medium">5</span>
+</button>
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors">
+              身份存疑 <span class="font-mono-data-sm ml-1 text-xs text-on-surface font-medium">3</span>
+</button>
+<button class="px-2.5 py-1 rounded text-body-sm font-label-table-head bg-surface-container-lowest text-on-surface-variant hover:text-on-surface border border-outline-variant hover:bg-surface-container-low transition-colors">
+              证据不足 <span class="font-mono-data-sm ml-1 text-xs text-tertiary font-medium">2</span>
+</button>
+</div>
+<!-- Sort Select Dropdown -->
+<div class="flex items-center gap-2">
+<span class="text-body-sm font-label-table-head text-on-surface-variant text-[12px] whitespace-nowrap">排序指标:</span>
+<select class="h-8 px-2.5 py-0 bg-surface-container-lowest border border-outline-variant rounded text-body-sm text-on-surface focus:border-primary focus:ring-0 focus:outline-none">
+<option>最近测试时间 (降序)</option>
+<option>24H 成功率 (从高到低)</option>
+<option>TTFT 延迟 (最快优先)</option>
+<option>流式输出速率 (TPS 降序)</option>
+</select>
+</div>
+</div>
+<!-- Capability Checkboxes & Protocol Filter -->
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-body-sm">
+<div class="flex flex-wrap items-center gap-4 text-on-surface-variant">
+<span class="text-[12px] font-label-table-head text-on-surface">特性过滤:</span>
+<label class="inline-flex items-center gap-1.5 cursor-pointer">
+<input checked="" class="w-3.5 h-3.5 rounded text-primary focus:ring-0 border-outline-variant" type="checkbox"/>
+<span>流式输出 (SSE)</span>
+</label>
+<label class="inline-flex items-center gap-1.5 cursor-pointer">
+<input checked="" class="w-3.5 h-3.5 rounded text-primary focus:ring-0 border-outline-variant" type="checkbox"/>
+<span>工具调用 (Tools)</span>
+</label>
+<label class="inline-flex items-center gap-1.5 cursor-pointer">
+<input class="w-3.5 h-3.5 rounded text-primary focus:ring-0 border-outline-variant" type="checkbox"/>
+<span>扩展思考 (Thinking)</span>
+</label>
+<label class="inline-flex items-center gap-1.5 cursor-pointer">
+<input class="w-3.5 h-3.5 rounded text-primary focus:ring-0 border-outline-variant" type="checkbox"/>
+<span>提示词缓存 (Prompt Cache)</span>
+</label>
+</div>
+<div class="font-mono-data-sm text-[11px] text-tertiary">
+            每轮采样 payload 长度: 1,024 prompt / 256 completion tokens
+          </div>
+</div>
+</section>
+<!-- 3.4 Two-Column Benchmark Grid: Provider Cards (72%) vs Methodology/Sidebars (28%) -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+<!-- ========================================== -->
+<!-- LEFT COLUMN: 8 Detailed Provider Cards (8 cols) -->
+<!-- ========================================== -->
+<section class="lg:col-span-8 space-y-3">
+<!-- CARD 1: DeepRelay AI (基础协议通过) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">DeepRelay AI</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">商用聚合型</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container-high text-secondary border border-outline-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  基础协议通过
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:31:42 (1.8m 前)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold tabular-nums">99.4%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">482 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">分块首字抖动</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">48 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">生成流速</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">38 tps</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<div class="flex flex-wrap items-center gap-2 font-mono-data-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">SSE 流传输 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">Tools 调用 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">Thinking 思考块 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-outline">Prompt Cache (未适配)</span>
+</div>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary border border-outline-variant transition-colors text-body-sm font-label-table-head">
+                查看完整探测数据
+              </button>
+</div>
+</article>
+<!-- CARD 2: KuroRoute (基础协议通过) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">KuroRoute</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">社区公益节点</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container-high text-secondary border border-outline-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  基础协议通过
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:28:10 (4m 前)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold tabular-nums">98.1%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">612 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">首字/流速</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">65ms / 29 tps</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">思考块稳定性</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface-variant">截断风险</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<div class="flex flex-wrap items-center gap-2 font-mono-data-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">SSE 流传输 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">Tools 调用 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-error">Thinking (超时截断)</span>
+</div>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary border border-outline-variant transition-colors text-body-sm font-label-table-head">
+                查看完整探测数据
+              </button>
+</div>
+</article>
+<!-- CARD 3: NexHub Proxy (验证中) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">NexHub Proxy</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">开发者自建共享</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container-high text-primary border border-outline-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-primary animate-pulse"></span>
+                  验证中 (Probing)
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:15:22 (进行中)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">95.0%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">1,140 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">采样进度</span>
+<span class="font-mono-metric-md text-mono-metric-md text-primary tabular-nums">8 / 20 轮次</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">协议合规状态</span>
+<span class="font-mono-metric-md text-mono-metric-md text-tertiary">待评估</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<span class="font-mono-data-sm text-on-surface-variant">提示: 样本未满 20 轮次，最终指标计算中...</span>
+<button class="px-2.5 py-1 rounded bg-surface text-tertiary border border-outline-variant cursor-not-allowed text-body-sm font-label-table-head" disabled="">
+                测试进行中...
+              </button>
+</div>
+</article>
+<!-- CARD 4: ApexRoute (行为异常) -->
+<article class="bg-surface-container-lowest border border-error/30 rounded-lg p-4 transition-colors hover:border-error">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">ApexRoute</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">商用聚合型</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-error-container text-on-error-container border border-error/30 flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-error"></span>
+                  行为异常: Stream中途截断 / Status 524
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-error font-medium">14:19:02 发生错误</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-error font-semibold tabular-nums">72.4%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-error font-semibold tabular-nums">2,850 ms</span>
+</div>
+<div class="col-span-2">
+<span class="text-[11px] text-tertiary block font-body-sm">异常特征诊断</span>
+<span class="font-mono-data-sm text-[11px] text-on-error-container font-mono">content_block_delta 发送至第 142 Token 时断开</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<span class="font-mono-data-sm text-error">多次复现 Cloudflare 网关 524 超时与 TCP Reset</span>
+<button class="px-2.5 py-1 rounded bg-surface hover:bg-error-container text-error border border-error/40 transition-colors text-body-sm font-label-table-head">
+                查看异常抓包
+              </button>
+</div>
+</article>
+<!-- CARD 5: Synapse Gateway (基础协议通过 - 极高分) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Synapse Gateway</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">机构镜像站</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container-high text-secondary border border-outline-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  基础协议通过
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:32:00 (刚刚)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold tabular-nums">99.8%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold tabular-nums">395 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">首字/流速</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">32ms / 44 tps</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">缓存加速</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold">Prompt Cache 1.25x</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<div class="flex flex-wrap items-center gap-2 font-mono-data-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">全部四项规范通过 ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">cache_creation_input_tokens 校验一致</span>
+</div>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary border border-outline-variant transition-colors text-body-sm font-label-table-head">
+                查看完整探测数据
+              </button>
+</div>
+</article>
+<!-- CARD 6: OpenModel Port (身份存疑) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">OpenModel Port</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">公共网关</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container text-on-surface border border-outline-variant flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                  身份存疑: 模型的系统指纹不匹配 (疑似降级 3.5-haiku)
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:05:18 (25m 前)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">88.2%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">890 ms</span>
+</div>
+<div class="col-span-2">
+<span class="text-[11px] text-tertiary block font-body-sm">盲测特征对照</span>
+<span class="font-mono-data-sm text-[11px] text-on-surface font-mono">请求 gpt-6.1-luna，返回 Token 熵特征与 3.5-haiku 一致</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<span class="font-mono-data-sm text-tertiary">多次探针复杂 Reasoning 问卷得分明显低于 Sonnet 基线</span>
+<button class="px-2.5 py-1 rounded bg-surface hover:bg-surface-container text-on-surface border border-outline-variant transition-colors text-body-sm font-label-table-head">
+                查看指纹对比报告
+              </button>
+</div>
+</article>
+<!-- CARD 7: MatrixBridge (基础协议通过) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">MatrixBridge</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">商用聚合型</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container-high text-secondary border border-outline-variant flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                  基础协议通过
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:22:31 (9m 前)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-secondary font-semibold tabular-nums">97.6%</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">740 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">首字/流速</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">80ms / 31 tps</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">高并发压力</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface">稳定 (20 C)</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<div class="flex flex-wrap items-center gap-2 font-mono-data-sm">
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">SSE ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">Tools ✓</span>
+<span class="px-1.5 py-0.5 rounded bg-surface border border-outline-variant text-secondary">Thinking ✓</span>
+</div>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest hover:bg-surface-container text-primary border border-outline-variant transition-colors text-body-sm font-label-table-head">
+                查看完整探测数据
+              </button>
+</div>
+</article>
+<!-- CARD 8: EchoRelay HK (证据不足) -->
+<article class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 transition-colors hover:border-outline">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-2.5 border-b border-outline-variant">
+<div class="flex items-center gap-2.5">
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">EchoRelay HK</span>
+<span class="px-1.5 py-0.5 rounded text-[11px] font-mono-badge bg-surface text-tertiary border border-outline-variant">区域专线节点</span>
+<span class="px-2 py-0.5 rounded text-[11px] font-mono-badge bg-surface-container text-tertiary border border-outline-variant flex items-center gap-1 font-semibold">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+                  证据不足: 采样轮次 &lt; 20 次
+                </span>
+</div>
+<span class="font-mono-data-sm text-[11px] text-tertiary">14:10:44 (21m 前)</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 py-3 font-mono-data-sm">
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">24H 成功率</span>
+<span class="font-mono-metric-md text-mono-metric-md text-tertiary tabular-nums">--</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">TTFT 首字延迟</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface tabular-nums">520 ms</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">采样进度</span>
+<span class="font-mono-metric-md text-mono-metric-md text-on-surface font-semibold tabular-nums">14 / 20</span>
+</div>
+<div>
+<span class="text-[11px] text-tertiary block font-body-sm">数据有效性</span>
+<span class="font-mono-metric-md text-mono-metric-md text-tertiary">不足</span>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex flex-wrap items-center justify-between gap-3 text-[11px]">
+<span class="font-mono-data-sm text-tertiary">端点刚刚上线测试流，需连续采集至少 10 小时方可收录主排期</span>
+<button class="px-2.5 py-1 rounded bg-surface text-tertiary border border-outline-variant cursor-not-allowed text-body-sm font-label-table-head" disabled="">
+                等待更多轮次
+              </button>
+</div>
+</article>
+<!-- 3.5 Pagination Controls -->
+<div class="pt-4 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-outline-variant text-body-sm text-on-surface-variant font-mono-data-sm text-[12px]">
+<div>显示 1 - 8 项, 共 42 个观测端点</div>
+<div class="flex items-center gap-1.5 font-label-table-head">
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant text-tertiary cursor-not-allowed">上一页</button>
+<button class="px-2.5 py-1 rounded bg-surface-container border border-outline-variant text-primary font-bold">1</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface">2</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface">3</button>
+<span class="px-1 text-tertiary">...</span>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface">6</button>
+<button class="px-2.5 py-1 rounded bg-surface-container-lowest border border-outline-variant text-on-surface hover:bg-surface">下一页</button>
+</div>
+</div>
+</section>
+<!-- ========================================== -->
+<!-- RIGHT COLUMN: Sidebar Notes & Verification (4 cols) -->
+<!-- ========================================== -->
+<aside class="lg:col-span-4 space-y-4">
+<!-- Note 1: 如何阅读结果与测试标准 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 space-y-2">
+<div class="flex items-center gap-2 text-on-surface font-headline-sm text-body-md font-semibold">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="help_outline">help_outline</span>
+<span>如何阅读结果与测试标准</span>
+</div>
+<p class="text-body-sm text-on-surface-variant leading-relaxed">
+              请注意，本测试中显示的<strong class="text-secondary font-semibold">【基础协议通过】</strong>仅代表该端点正确响应了 Anthropic Messages API 的 HTTP 状态码与 SSE 块协议规范，<span class="text-error font-medium">绝不代表</span>其数据传输没有被监听、记录，亦不能证明其底层真实调用的是 Anthropic 官方模型正品。
+            </p>
+<div class="pt-2 border-t border-outline-variant font-mono-data-sm text-[11px] text-tertiary space-y-1">
+<div>• 探针请求载荷: 统一 1,024 字符基准 prompt</div>
+<div>• 协议严格度: 包含 content_block_start / delta / stop 顺序校验</div>
+</div>
+</div>
+<!-- Note 2: 【身份存疑】说明 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 space-y-2">
+<div class="flex items-center gap-2 text-on-surface font-headline-sm text-body-md font-semibold">
+<span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="fingerprint">fingerprint</span>
+<span>【身份存疑】判定原理</span>
+</div>
+<p class="text-body-sm text-on-surface-variant leading-relaxed">
+              我们部署了基于特定数学难题与逆向推理的探针问卷。当请求端点声称返回的是 <code class="font-mono text-[11px] bg-surface px-1 py-0.5 rounded border border-outline-variant">gpt-6.1-luna</code>，但其输出特征、Token 概率熵值或推理步骤模式与低阶模型（如 Haiku、开源模型蒸馏体）高度吻合时，探针将触发指纹异常审计，并在多次复现后打上该标记。
+            </p>
+</div>
+<!-- Note 3: 【完全中立承诺】 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 space-y-2">
+<div class="flex items-center gap-2 text-on-surface font-headline-sm text-body-md font-semibold">
+<span class="material-symbols-outlined text-secondary text-[18px]" data-icon="policy">policy</span>
+<span>【完全中立承诺】</span>
+</div>
+<p class="text-body-sm text-on-surface-variant leading-relaxed">
+              本站绝不收录任何推广返佣链接 (No AFF)，不设任何形式的付费置顶广告，不接受服务商资金赞助以影响指标权重。所有排序与评分均基于探针抓包指标全自动计算。
+            </p>
+<div class="pt-1 flex items-center gap-2">
+<span class="inline-flex items-center gap-1 font-mono-data-sm text-[11px] text-secondary">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+                源码审计已由公开 CI 执行
+              </span>
+</div>
+</div>
+<!-- Note 4: 探针基础设施与网络延迟 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-lg p-4 space-y-3">
+<div class="flex items-center justify-between text-on-surface font-headline-sm text-body-md font-semibold">
+<span class="flex items-center gap-2">
+<span class="material-symbols-outlined text-tertiary text-[18px]" data-icon="speed">speed</span>
+<span>探针实时网络延迟 (Ping)</span>
+</span>
+<span class="text-[11px] font-mono text-tertiary">icmp ping</span>
+</div>
+<div class="space-y-2 font-mono-data-sm text-[12px]">
+<div class="flex justify-between items-center p-1.5 rounded bg-surface border border-outline-variant">
+<span class="text-on-surface-variant">东京 Linode → AWS ap-northeast-1</span>
+<span class="text-secondary font-medium tabular-nums">1.4 ms</span>
+</div>
+<div class="flex justify-between items-center p-1.5 rounded bg-surface border border-outline-variant">
+<span class="text-on-surface-variant">东京 Linode → Cloudflare HKG</span>
+<span class="text-secondary font-medium tabular-nums">41.8 ms</span>
+</div>
+<div class="flex justify-between items-center p-1.5 rounded bg-surface border border-outline-variant">
+<span class="text-on-surface-variant">东京 Linode → AWS us-west-2 (SJC)</span>
+<span class="text-on-surface font-medium tabular-nums">118.2 ms</span>
+</div>
+</div>
+<div class="font-body-sm text-[11px] text-tertiary leading-relaxed pt-1">
+              测试探针直接部署于日本东京核心 BGP 骨干，排除国内客户端网络抖动对基准 TTFT 的干扰。
+            </div>
+</div>
+</aside>
+</div>
+</div>
+</main>
+</body></html>
