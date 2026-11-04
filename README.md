@@ -32,8 +32,11 @@
 | – 未验证 | 88code | 商业 | [www.88code.org](https://www.88code.org) | `—` |
 | – 未验证 | AICodeMirror | 商业 | [www.aicodemirror.com](https://www.aicodemirror.com) | `—` |
 | – 未验证 | AIMZ | 商业 | [mzlone.top](https://mzlone.top) | `—` |
+| – 未验证 | AI快站 AIFast | 商业 | [www.aifast.hk](https://www.aifast.hk) | `—` |
 | – 未验证 | Anyrouter | 公益 | [anyrouter.top](https://anyrouter.top) | `—` |
+| – 未验证 | Code By AI | 商业 | [www.codebyai.net](https://www.codebyai.net) | `—` |
 | – 未验证 | CodeCli | 商业 | [www.code-cli.cn](https://www.code-cli.cn) | `—` |
+| – 未验证 | CoderPlan | 商业 | [coderplan.ai](https://coderplan.ai) | `—` |
 | – 未验证 | Cubence | 商业 | [cubence.com](https://cubence.com) | `—` |
 | – 未验证 | Duckcoding | 商业 | [duckcoding.com](https://duckcoding.com) | `https://jp.duckcoding.com` |
 | – 未验证 | EasyChat | 商业 | [easychat.site](https://easychat.site) | `—` |
@@ -47,6 +50,7 @@
 | – 未验证 | Privnode | 商业 | [privnode.com](https://privnode.com) | `—` |
 | – 未验证 | Runanytime | 商业 | [runanytime.hxi.me](https://runanytime.hxi.me) | `—` |
 | – 未验证 | SSSAiCode | 商业 | [www.sssaicode.com](https://www.sssaicode.com) | `—` |
+| – 未验证 | TeamoRouter | 商业 | [teamorouter.com](https://teamorouter.com) | `—` |
 | – 未验证 | TeapotRouter | 商业 | [teapotrouter.com](https://teapotrouter.com) | `—` |
 | – 未验证 | Twinkle Model | 商业 | [big-model.smart-agi.com](https://big-model.smart-agi.com) | `—` |
 | – 未验证 | Uucode | 商业 | [www.uucode.org](https://www.uucode.org) | `—` |
