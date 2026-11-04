@@ -258,6 +258,7 @@ def api_list_prs():
         out.append({"pr": b["pr"], "provider_id": b.get("provider_id"),
                     "api_base": b.get("api_base"), "author": b.get("author"),
                     "kind": b.get("kind"), "model": b.get("model"),
+                    "repo": b.get("repo") or REPO,
                     "result": public_result(b)})
     return {"prs": out}
 
@@ -489,6 +490,7 @@ button:hover{border-color:var(--acc)}button.primary{background:#1f6feb;border-co
 input{width:100%;background:#0d1117;color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:.95em;margin:4px 0 12px}
 code{background:#21262d;padding:1px 6px;border-radius:4px;font-size:.88em}
 .code-box{font-size:1.25em;font-weight:700;color:var(--ok);background:#010409;border:1px dashed var(--ok);border-radius:8px;padding:10px 14px;margin:10px 0;user-select:all}
+.prlink{display:inline-block;margin:8px 0 4px;font-weight:600}
 </style></head><body><div class="wrap">
 <h1>🔬 MQ Hub <span class="muted">— 中转站官方验证入口</span></h1>
 <p class="muted">临时 Key 仅存内存：一次性消费 · TTL_EXPIRE 分钟过期 · 绝不落盘 · 报告自动回贴 PR · 评论 /mq-done 自动合并。<br>
@@ -511,7 +513,9 @@ async function boot() {
   const d = await j('/api/prs');
   if (!d.prs.length) { main.innerHTML = '<div class="card muted">暂无已注册的待验证 PR。提交 PR 修改 <code>providers/*.json</code> 后会自动出现在这里。</div>'; return; }
   main.innerHTML = '';
+  window.PRMAP = {};
   for (const b of d.prs) {
+    window.PRMAP[b.pr] = b;
     const res = b.result || {};
     const mine = me && me.login && b.author && me.login.toLowerCase() === b.author.toLowerCase();
     const div = document.createElement('div'); div.className = 'card';
@@ -547,8 +551,11 @@ async function boot() {
     try {
       const r = await j(`/api/prs/${pr}/bind/start`, {method:'POST'});
       if (r.already_bound) { document.getElementById('bind-'+pr).style.display='none'; document.getElementById('key-'+pr).style.display='block'; m.textContent='✅ 身份已绑定'; return; }
+      const repo = (window.PRMAP[pr] || {}).repo || 'cfrs2005/awesome-claude-code-relay';
       document.getElementById('bind-'+pr).innerHTML =
-        `<div class="code-box">${r.code}</div><span class="muted">用提交 PR 的 GitHub 账号，到 PR #${pr} 下评论上面这串绑定码，然后回来点击确认：</span><br><button class="primary" onclick="bindConfirm(${pr})">我已评论，确认绑定</button>`;
+        `<div class="code-box">${r.code}</div>
+        <a class="prlink" href="https://github.com/${repo}/pull/${pr}" target="_blank" rel="noopener">➡️ 点这里打开 PR #${pr} 评论区，把上面的绑定码粘贴为评论（用提交 PR 的 GitHub 账号）</a><br>
+        <button class="primary" onclick="bindConfirm(${pr})">我已评论，确认绑定</button>`;
     } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
   };
   window.bindConfirm = async (pr) => {
