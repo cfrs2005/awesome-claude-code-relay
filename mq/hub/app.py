@@ -521,7 +521,7 @@ async function boot() {
     const div = document.createElement('div'); div.className = 'card';
     const badge = res.verified ? '<span class="tag ok">✅ 已通过</span>'
       : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + (res.base_mismatch?' + 端点不一致':'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
-    let inner = `<b>#${b.pr} ${b.provider_id||''}</b> ${badge}` +
+    let inner = `<b><a href="https://github.com/${b.repo||'cfrs2005/awesome-claude-code-relay'}/pull/${b.pr}" target="_blank" rel="noopener">#${b.pr} ${b.provider_id||''} ↗</a></b> ${badge}` +
       (mine ? ' <span class="tag">我是作者</span>' : '') +
       `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code> · 测试模型 <code>${b.model||'claude-haiku-4-5'}</code>` +
       (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
