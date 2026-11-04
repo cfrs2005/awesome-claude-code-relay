@@ -15,7 +15,7 @@
 | `providers/*.json` | 服务商条目（每个服务商一个文件，id 与文件名一致；**一个 PR 只能新增一个**） |
 | `providers/schema.json` | 条目 JSON Schema（自动校验依据） |
 | `mq/mq.py` | MQ 检测引擎：协议 / tokenizer 计数一致性 / TTFT/TPS / 稳定性 / 身份旁证 |
-| `mq/hub/app.py` | MQ Hub 服务（ntt197, mq.80aj.com）：OAuth 登录、临时 Key 内存暂存、运行引擎、回贴报告 |
+| `mq/hub/app.py` | MQ Hub 服务：身份绑定、临时 Key 内存暂存、运行引擎、回贴报告 |
 | `scripts/check_providers.py` | PR 确定性校验（自动合并的依据之一） |
 | `scripts/register_hub.py` | 从 PR 提取待测 URL 注册到 Hub（register-verify 调用） |
 | `scripts/hub_gate.py` | Hub 验证门禁判定（providers-check 调用） |
@@ -28,7 +28,7 @@
 
 每个已注册 PR 都有一个固定的验证工作台地址：`https://mq.80aj.com/pr/<PR号>`。`register-verify`、Hub API、验证报告和 PR 评论必须使用同一个地址，不能要求作者在全局 PR 列表中寻找自己的记录。
 
-> 运维细节（服务器、密钥清单、操作手册）在**本地私有目录** `docs-private/`（已 gitignore，绝不入库）。
+> 运维细节不写入仓库。凭证只通过受控的运行环境和 CI Secret 提供，绝不进入代码、文档、评论或报告。
 
 ## PR 规则（AI 助手必须遵守的执行边界）
 
@@ -36,17 +36,9 @@
 2. 自动合并**仅限** `providers/*.json` 且全部确定性检查通过；含 README / workflow / 脚本变更的 PR 一律转维护者人工审查。
 3. AI（@claude / GLM 分诊）的结论是**参考信息**，永远不能替代 `providers-check` 的确定性校验，AI 没有合并权限。
 4. 绝不在 PR、Issue、评论、日志中索要或粘贴 API Key。官方验证的 Key 一律走一次性 HTTPS 入口（见 docs/verification-design.md）。
-5. 检测引擎只以 **main 分支部署副本**运行（服务器 /opt/mq-hub/engine/mq.py），绝不执行 PR head 的代码（防 pwn request）；Hub 不执行合并，合并只发生在 providers-check 全绿之后。
+5. 检测引擎只运行受控的 main 分支部署副本，绝不执行 PR head 的代码；Hub 不执行合并，合并只发生在 providers-check 全绿之后。
 
-## 必需 Secrets
-
-| Secret | 用途 |
-|--------|------|
-| `ANTHROPIC_BASE_URL` | GLM 的 Anthropic 兼容端点（如 `https://open.bigmodel.cn/api/anthropic`） |
-| `GLM_API_KEY` | GLM API Key，经 `ANTHROPIC_AUTH_TOKEN` 供 Claude Code 使用 |
-| `MQ_HUB_URL` | MQ Hub 地址（`https://mq.80aj.com`），注册与门禁用 |
-| `MQ_HUB_TOKEN` | Action ↔ Hub 共享密钥（服务器 /opt/mq-hub/env 中 HUB_TOKEN） |
-| `MQ_BOT_TOKEN`（可选） | PAT，用于 fork PR 的评论/自动合并（fork PR 的默认 token 只读） |
+CI 凭证只配置在受控的仓库 Secret 和运行环境中。公开文档不列出凭证名称、存储位置或运维路径。
 
 ## MQ 验证语义
 
