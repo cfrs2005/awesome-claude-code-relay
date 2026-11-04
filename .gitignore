@@ -5,3 +5,4 @@ __pycache__/
 *.key
 .DS_Store
 docs-private/
+.workbuddy/
