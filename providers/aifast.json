@@ -1,0 +1,18 @@
+{
+  "id": "aifast",
+  "name": "AI快站 AIFast",
+  "type": "commercial",
+  "website": "https://www.aifast.hk",
+  "api_base": null,
+  "models_claimed": [],
+  "payment": [],
+  "price_note": "",
+  "notes": "历史条目迁移；待补充 Anthropic 兼容 api_base 并完成 MQ 验证",
+  "added_at": "2026-11-04",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
