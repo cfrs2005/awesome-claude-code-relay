@@ -137,6 +137,10 @@ def main():
                     ", ".join(p for _, p in other_changes[:5]))
     if not provider_changes:
         errs.append("没有 providers/*.json 变更")
+    added_providers = [p for s, p in provider_changes if s.startswith("A")]
+    if len(added_providers) > 1:
+        errs.append("一个 PR 只能新增一个服务商（MQ 验证按 PR 绑定），请拆分: " +
+                    ", ".join(added_providers))
 
     schema = json.loads((ROOT / "providers" / "schema.json").read_text(encoding="utf-8"))
     base_ids = load_all_ids(args.base)

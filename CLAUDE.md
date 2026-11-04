@@ -12,16 +12,18 @@
 
 | 路径 | 作用 |
 |------|------|
-| `providers/*.json` | 服务商条目（每个服务商一个文件，id 与文件名一致） |
+| `providers/*.json` | 服务商条目（每个服务商一个文件，id 与文件名一致；**一个 PR 只能新增一个**） |
 | `providers/schema.json` | 条目 JSON Schema（自动校验依据） |
 | `mq/mq.py` | MQ 检测引擎：协议 / tokenizer 计数一致性 / TTFT/TPS / 稳定性 / 身份旁证 |
-| `scripts/check_providers.py` | PR 确定性校验（自动合并的唯一依据） |
+| `mq/hub/app.py` | MQ Hub 服务（ntt197, mq.80aj.com）：OAuth 登录、临时 Key 内存暂存、运行引擎、回贴报告 |
+| `scripts/check_providers.py` | PR 确定性校验（自动合并的依据之一） |
+| `scripts/register_hub.py` | 从 PR 提取待测 URL 注册到 Hub（register-verify 调用） |
+| `scripts/hub_gate.py` | Hub 验证门禁判定（providers-check 调用） |
 | `scripts/build_readme.py` | 从 providers/*.json 生成 README 目录表 |
-| `scripts/update_verification.py` | 验证完成后回写 verification 状态 |
-| `.github/workflows/providers-check.yml` | PR 校验 + Watch 检查 + 自动合并 |
+| `.github/workflows/providers-check.yml` | PR 校验 + Watch 检查 + Hub 门禁 + 自动合并 |
+| `.github/workflows/register-verify.yml` | PR 变更注册到 Hub + 发布验证指引 |
 | `.github/workflows/claudecode.yml` | GLM 驱动的 Claude Code（@claude 交互 + PR 自动分诊） |
-| `.github/workflows/mq-verify.yml` | 官方验证执行器（一次性 Key，不落盘） |
-| `docs/verification-design.md` | 临时 Key 安全架构 |
+| `docs/verification-design.md` | Hub 架构、威胁模型、部署说明 |
 
 ## PR 规则（AI 助手必须遵守的执行边界）
 
@@ -37,6 +39,8 @@
 |--------|------|
 | `ANTHROPIC_BASE_URL` | GLM 的 Anthropic 兼容端点（如 `https://open.bigmodel.cn/api/anthropic`） |
 | `GLM_API_KEY` | GLM API Key，经 `ANTHROPIC_AUTH_TOKEN` 供 Claude Code 使用 |
+| `MQ_HUB_URL` | MQ Hub 地址（`https://mq.80aj.com`），注册与门禁用 |
+| `MQ_HUB_TOKEN` | Action ↔ Hub 共享密钥（服务器 /opt/mq-hub/env 中 HUB_TOKEN） |
 | `MQ_BOT_TOKEN`（可选） | PAT，用于 fork PR 的评论/自动合并（fork PR 的默认 token 只读） |
 
 ## MQ 验证语义

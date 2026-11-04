@@ -95,11 +95,14 @@ python3 mq.py --base-url https://api.example.com --key sk-your-key
 
 ## 🔑 官方验证（临时 Key）
 
-服务商可申请"官方验证"徽标（`✅ 基础验证通过`）：通过一次性临时 Key 入口提交 Key → MQ 引擎在 GitHub Actions 中执行 → 报告自动回贴 PR 并更新状态。
+新收录条目必须完成 MQ 官方验证，入口：**https://mq.80aj.com**
 
-- Key 通过 HTTPS 入口直达验证执行器，**不落库、不进 PR、不进日志**，一次性消费、15 分钟过期
-- 请提交**低额度、短有效期**的专用 Key，验证完成后立即吊销
-- 架构细节与安全边界：[docs/verification-design.md](docs/verification-design.md)
+1. 提 PR 后，Action 自动把 PR 声明的 `api_base` 注册到验证 Hub，并在 PR 下发指引评论
+2. **PR 作者**用 GitHub 登录 Hub → 提交**一次性临时 Key**（仅存内存，20 分钟过期，触发即焚）→ 点击运行验证
+3. 引擎在服务端执行，报告自动回贴 PR，`verification` 状态自动更新
+4. 实测端点必须与 PR 声明的 `api_base` 完全一致（防"测 A 卖 B"），验证通过 + 全部检查通过后自动合并
+
+请提交**低额度、短有效期**的专用 Key，验证完成后立即吊销。架构与安全边界：[docs/verification-design.md](docs/verification-design.md)
 
 ## ⚙️ Claude Code 配置（通用）
 

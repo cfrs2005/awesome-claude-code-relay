@@ -66,6 +66,35 @@ jobs:
             echo "❌ @$PR_AUTHOR 尚未 Watch 本项目（$REPO 的 subscribers 列表中未找到）"
           fi
 
+      # MQ Hub 验证门禁：新收录条目必须完成 Hub 验证（mq-manual 标签可绕过，转人工合并）
+      - name: MQ Hub verification gate
+        id: hub
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HUB_URL: ${{ secrets.MQ_HUB_URL }}
+          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          labels=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.labels[].name' || true)
+          if printf '%s\n' "$labels" | grep -qx 'mq-manual'; then
+            echo "hub-gate=skipped" >> "$GITHUB_OUTPUT"
+            echo " mq-manual 标签：跳过 Hub 门禁，本 PR 转人工合并（自动合并已禁用）"
+            exit 0
+          fi
+          if [ -z "$HUB_URL" ] || [ -z "$HUB_TOKEN" ]; then
+            echo "hub-gate=unconfigured" >> "$GITHUB_OUTPUT"
+            echo "::warning::MQ_HUB_URL / MQ_HUB_TOKEN 未配置，Hub 门禁未生效（老仓库兼容行为）"
+            exit 0
+          fi
+          echo "hub-gate=checked" >> "$GITHUB_OUTPUT"
+          code=$(curl -sS -m 20 -o /tmp/hub.json -w '%{http_code}' \
+            -H "X-Hub-Token: $HUB_TOKEN" "$HUB_URL/api/prs/$PR_NUMBER") || code=000
+          if [ "$code" != "200" ]; then
+            echo "::error::Hub 不可达（HTTP $code）。验证服务暂不可用时新收录 PR 不自动合并；维护者可打 mq-manual 标签转人工"
+            exit 1
+          fi
+          python3 scripts/hub_gate.py /tmp/hub.json
+
       - name: Post result comment
         if: always()
         env:
@@ -99,7 +128,7 @@ jobs:
           exit 1
 
       - name: Enable auto-merge (squash)
-        if: steps.validate.outcome == 'success' && steps.watch.outputs.watched == 'true'
+        if: steps.validate.outcome == 'success' && steps.watch.outputs.watched == 'true' && steps.hub.outputs.hub-gate != 'skipped'
         env:
           GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
         run: |

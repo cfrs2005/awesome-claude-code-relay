@@ -320,6 +320,7 @@ def probe_stream(client, model, rep):
             if isinstance(u, int):
                 out_tokens = u
             break
+    req_start = events[0]["t"] - r["elapsed"] if events else None
     ttft = round(first_delta - req_start, 3) if (first_delta and req_start) else None
     span = round(last - first_delta, 3) if (first_delta and last) else None
     tps = round(out_tokens / span, 1) if (out_tokens and span and span > 0.05) else None
