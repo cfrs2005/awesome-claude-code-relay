@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RelayQuality 服务商质量评测与快照证据报告 - 86GameStore</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-highest": "#d3e4fe",
+            "on-primary-container": "#eeefff",
+            "tertiary": "#4d556b",
+            "on-primary-fixed": "#00174b",
+            "on-error-container": "#93000a",
+            "on-tertiary": "#ffffff",
+            "secondary-container": "#76dcff",
+            "error-container": "#ffdad6",
+            "on-secondary-fixed-variant": "#004e61",
+            "on-secondary-container": "#006077",
+            "on-secondary": "#ffffff",
+            "on-secondary-fixed": "#001f28",
+            "on-tertiary-fixed-variant": "#3f465c",
+            "on-tertiary-container": "#eef0ff",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "surface-bright": "#f8f9ff",
+            "outline": "#737686",
+            "surface-variant": "#d3e4fe",
+            "primary-fixed-dim": "#b4c5ff",
+            "secondary-fixed": "#b7eaff",
+            "inverse-surface": "#213145",
+            "error": "#ba1a1a",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary-container": "#656d84",
+            "secondary-fixed-dim": "#6cd3f7",
+            "on-background": "#0b1c30",
+            "on-error": "#ffffff",
+            "tertiary-fixed": "#dae2fd",
+            "background": "#f8f9ff",
+            "surface-container-lowest": "#ffffff",
+            "secondary": "#006780",
+            "surface-container-high": "#dce9ff",
+            "primary-container": "#2563eb",
+            "on-tertiary-fixed": "#131b2e",
+            "surface-dim": "#cbdbf5",
+            "tertiary-fixed-dim": "#bec6e0",
+            "surface-container-low": "#eff4ff",
+            "outline-variant": "#c3c6d7",
+            "surface-container": "#e5eeff",
+            "inverse-on-surface": "#eaf1ff",
+            "on-primary": "#ffffff",
+            "inverse-primary": "#b4c5ff",
+            "surface-tint": "#0053db",
+            "on-surface-variant": "#434655",
+            "primary": "#004ac6",
+            "primary-fixed": "#dbe1ff"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-xs": "0.25rem",
+            "gutter": "0.75rem",
+            "margin": "1rem",
+            "space-xl": "1rem",
+            "gutter-desktop": "1rem",
+            "space-sm": "0.375rem",
+            "space-md": "0.5rem",
+            "margin-desktop": "1.5rem",
+            "space-lg": "0.75rem"
+          },
+          "fontFamily": {
+            "headline-lg": ["Inter"],
+            "headline-xl": ["Inter"],
+            "mono-metric-md": ["JetBrains Mono"],
+            "mono-metric-lg": ["JetBrains Mono"],
+            "headline-sm": ["Inter"],
+            "label-table-head": ["Inter"],
+            "body-sm": ["Inter"],
+            "mono-data-sm": ["JetBrains Mono"],
+            "mono-badge": ["JetBrains Mono"],
+            "body-md": ["Inter"],
+            "headline-xl-mobile": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "headline-xl": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "mono-metric-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "mono-metric-lg": ["24px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "label-table-head": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "mono-data-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "mono-badge": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "headline-xl-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" }]
+          }
+        }
+      }
+    };
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+    /* Technical scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f8f9ff; }
+    ::-webkit-scrollbar-thumb { background: #c3c6d7; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #737686; }
+  </style>
+</head>
+<body class="bg-background text-on-surface h-full font-body-md text-body-md antialiased selection:bg-surface-container selection:text-primary">
+<!-- Structural SideNavBar (Shared Component) -->
+<aside class="w-56 h-screen fixed left-0 top-0 flex flex-col z-40 bg-surface-container-lowest border-r border-outline-variant shrink-0 justify-between py-margin px-space-md">
+<!-- Header Logo & Subtext -->
+<div class="flex flex-col gap-space-xs">
+<div class="flex items-center gap-space-sm px-space-sm">
+<span class="material-symbols-outlined text-primary" data-icon="terminal">terminal</span>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold">RelayQuality</span>
+</div>
+<div class="px-space-sm font-mono-data-sm text-mono-data-sm text-on-surface-variant text-[11px] leading-tight">
+        Anthropic API Probe
+        <div class="text-outline text-[10px] mt-0.5">v0.9.4-rc2 · commit 7d9a1f4</div>
+</div>
+<!-- Navigation List -->
+<nav aria-label="Main Navigation" class="mt-margin flex flex-col gap-space-xs">
+<!-- 质量总览 -->
+<a class="flex items-center gap-space-sm px-space-sm py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer select-none" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-body-md text-body-md">质量总览</span>
+</a>
+<!-- 服务商 (ACTIVE) -->
+<a class="flex items-center gap-space-sm px-space-sm py-1.5 rounded bg-surface-container text-primary font-headline-sm cursor-pointer select-none" href="#">
+<span class="material-symbols-outlined" data-icon="dns" data-weight="fill" style="font-variation-settings: 'FILL' 1;">dns</span>
+<span class="font-body-md text-body-md font-semibold">服务商</span>
+</a>
+<!-- 验证说明 -->
+<a class="flex items-center gap-space-sm px-space-sm py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer select-none" href="#">
+<span class="material-symbols-outlined" data-icon="fact_check">fact_check</span>
+<span class="font-body-md text-body-md">验证说明</span>
+</a>
+<!-- 提交服务商 -->
+<a class="flex items-center gap-space-sm px-space-sm py-1.5 rounded text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer select-none" href="#">
+<span class="material-symbols-outlined" data-icon="add_box">add_box</span>
+<span class="font-body-md text-body-md">提交服务商</span>
+</a>
+</nav>
+</div>
+<!-- Footer Rail Items & CTA -->
+<div class="flex flex-col gap-space-sm pt-space-md border-t border-outline-variant">
+<div class="flex flex-col gap-0.5">
+<a class="flex items-center gap-space-sm px-space-sm py-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded text-[12px]" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="info">info</span>
+<span>状态图例</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low rounded text-[12px]" href="#">
+<span class="material-symbols-outlined text-[16px]" data-icon="terminal">terminal</span>
+<span>系统说明</span>
+</a>
+</div>
+<a class="w-full bg-surface-container-lowest text-primary border border-outline-variant hover:border-outline text-center py-1.5 px-space-sm rounded font-body-sm text-body-sm font-semibold flex items-center justify-center gap-space-xs transition-colors" href="https://github.com" rel="noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+<span>提交服务商</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar (Shared Component) -->
+<header class="h-16 pl-56 w-full fixed top-0 left-0 z-30 flex items-center bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex justify-between items-center h-16 px-margin w-full">
+<!-- Breadcrumb Hierarchy -->
+<nav aria-label="Breadcrumb" class="flex items-center gap-space-xs font-body-sm text-body-sm">
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">质量总览</a>
+<span class="text-outline">/</span>
+<a class="text-on-surface-variant hover:text-on-surface transition-colors" href="#">服务商</a>
+<span class="text-outline">/</span>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-full bg-primary"></span>
+          86GameStore
+        </span>
+<span class="ml-2 font-mono-badge text-mono-badge bg-surface-container text-primary px-1.5 py-0.5 rounded border border-primary-fixed-dim">
+          快照报告
+        </span>
+</nav>
+<!-- Trailing Action Cluster -->
+<div class="flex items-center gap-space-md">
+<!-- Node selector chip -->
+<div class="flex items-center gap-1.5 bg-surface-container-low px-2 py-1 rounded border border-outline-variant text-[12px] font-mono-data-sm text-on-surface-variant">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+<span class="text-outline">Probe Node:</span>
+<span class="font-medium text-on-surface">Asia-East (HKG)</span>
+</div>
+<!-- Tool utility icons -->
+<div class="flex items-center gap-1 border-l border-outline-variant pl-space-md">
+<button class="w-7 h-7 flex items-center justify-center border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:border-outline rounded transition-colors active:scale-95" title="重新拉取最新轮测">
+<span class="material-symbols-outlined text-[16px]" data-icon="refresh">refresh</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center border border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:text-on-surface hover:border-outline rounded transition-colors active:scale-95" title="查看原始测算脚本">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+</button>
+<a class="flex items-center gap-1 text-[12px] font-body-sm font-semibold text-primary hover:underline px-2 py-1" href="https://github.com" rel="noreferrer" target="_blank">
+<span>GitHub</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="open_in_new">open_in_new</span>
+</a>
+</div>
+</div>
+</div>
+</header>
+<!-- Main Content Viewport -->
+<main class="pl-56 pt-16 min-h-screen">
+<div class="max-w-[1440px] mx-auto p-margin-desktop space-y-space-md">
+<!-- Neutral Public Disclaimer Banner -->
+<div class="bg-surface-container-low border border-outline-variant p-3 rounded flex items-start gap-3">
+<span class="material-symbols-outlined text-amber-600 shrink-0 text-[20px] mt-0.5" data-icon="warning">warning</span>
+<div class="text-[12px] leading-relaxed text-on-surface-variant">
+<strong class="text-on-surface font-semibold">客观性与快照存证声明：</strong>
+          本报告是快照式客观证据，仅证明在指定探测时刻下该端点对 Anthropic Messages API 的协议格式与握手连通性；绝不证明其数据传输安全性、底层真实模型归属（无套壳/无降级背书）或服务商未留存用户请求。数据全部来源于公开公立探针执行记录。
+        </div>
+</div>
+<!-- Header Hero Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded p-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
+<div class="space-y-1.5">
+<div class="flex items-center gap-3 flex-wrap">
+<h1 class="font-headline-lg text-headline-lg text-on-surface font-bold tracking-tight">86GameStore</h1>
+<span class="font-mono-badge text-mono-badge bg-surface-container px-2 py-0.5 rounded text-on-surface-variant border border-outline-variant">
+              Type: 商业聚合型
+            </span>
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              基础协议通过
+            </span>
+<a class="font-mono-data-sm text-mono-data-sm text-primary hover:underline flex items-center gap-0.5" href="https://github.com/relayquality/probes/pull/19" rel="noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[14px]" data-icon="merge_type">merge_type</span>
+              PR #19 (feat: add 86gamestore probe config)
+            </a>
+</div>
+<div class="flex items-center gap-4 text-[12px] font-mono-data-sm text-on-surface-variant flex-wrap">
+<div class="flex items-center gap-1">
+<span class="text-outline">Endpoint:</span>
+<span class="font-mono text-on-surface font-medium selection:bg-surface-container bg-surface-container-low px-1.5 py-0.5 rounded border border-outline-variant">https://api.86gamestore.net/v1</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="text-outline">Last Probe Run:</span>
+<span class="text-on-surface">2026-11-04 14:28:12 UTC+8</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="text-outline">Probe Engine:</span>
+<span class="text-on-surface">mq-probe v0.9.4</span>
+</div>
+</div>
+</div>
+<div class="flex items-center gap-2 self-start md:self-center">
+<a class="px-3 py-1.5 text-xs font-medium text-on-surface bg-surface-container-lowest hover:bg-surface-container-low border border-outline-variant rounded flex items-center gap-1 transition-colors" href="#raw-evidence">
+<span class="material-symbols-outlined text-[15px]" data-icon="data_object">data_object</span>
+<span>查看脱敏 Dump</span>
+</a>
+<button class="px-3 py-1.5 text-xs font-medium text-on-primary bg-primary-container hover:bg-primary border border-primary rounded flex items-center gap-1 transition-colors" onclick="navigator.clipboard.writeText('https://api.86gamestore.net/v1')">
+<span class="material-symbols-outlined text-[15px]" data-icon="content_copy">content_copy</span>
+<span>复制 Endpoint</span>
+</button>
+</div>
+</section>
+<!-- 2-Column Evidence Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-10 gap-space-md">
+<!-- Left 70% Column (7 Cols on desktop) -->
+<div class="lg:col-span-7 space-y-space-md">
+<!-- 1. Compact Verdict Summary & Latency Block (Bento style grid) -->
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-space-md">
+<!-- Tested Model & Overall Protocol Score -->
+<div class="sm:col-span-2 bg-surface-container-lowest border border-outline-variant rounded p-3.5 flex flex-col justify-between">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div class="text-[12px] font-label-table-head text-tertiary">测试基准模型 (TESTED TARGET)</div>
+<span class="font-mono-badge text-mono-badge bg-surface-container-low px-1.5 py-0.5 rounded text-on-surface border border-outline-variant">
+                  gpt-6.1-luna-20250219
+                </span>
+</div>
+<div class="pt-3 flex items-center justify-between">
+<div>
+<div class="text-[11px] font-label-table-head text-outline uppercase tracking-wider">综合握手评定</div>
+<div class="flex items-baseline gap-2 mt-0.5">
+<span class="font-mono-metric-lg text-mono-metric-lg font-bold text-on-surface">7 / 8</span>
+<span class="text-xs text-on-surface-variant font-medium">项通过 (87.5%)</span>
+</div>
+</div>
+<div class="bg-amber-50 border border-amber-200 px-2.5 py-1.5 rounded text-right">
+<div class="font-mono-badge text-mono-badge text-amber-800 flex items-center justify-end gap-1">
+<span class="material-symbols-outlined text-[14px] text-amber-600" data-icon="info">info</span>
+<span>1 项边界警示</span>
+</div>
+<div class="text-[11px] text-amber-700 mt-0.5 font-medium">
+                    Extended Thinking 首字截断风险
+                  </div>
+</div>
+</div>
+</div>
+<!-- Latency telemetry snapshot -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-3.5 flex flex-col justify-between">
+<div class="text-[12px] font-label-table-head text-tertiary border-b border-outline-variant pb-2 flex items-center justify-between">
+<span>测流链路 (TELEMETRY)</span>
+<span class="font-mono text-[10px] text-outline">n=20 次连续</span>
+</div>
+<div class="pt-2 space-y-1.5 font-mono-data-sm text-mono-data-sm">
+<div class="flex justify-between items-baseline">
+<span class="text-outline text-[11px]">首字时延 (TTFT):</span>
+<span class="font-mono font-semibold text-on-surface text-[14px]">412ms</span>
+</div>
+<div class="flex justify-between text-[11px] text-on-surface-variant">
+<span>p50: 388ms</span>
+<span>p95: 640ms</span>
+</div>
+<div class="flex justify-between items-baseline pt-1 border-t border-outline-variant/60">
+<span class="text-outline text-[11px]">吞吐 / 流速抖动:</span>
+<span class="font-mono text-[11px] text-on-surface font-medium">36.4 tps · ±42ms</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. Dense 8-Row Check Matrix -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded overflow-hidden">
+<div class="px-3.5 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="rule">rule</span>
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">Anthropic 协议规范项实测审计矩阵</span>
+</div>
+<span class="font-mono text-[11px] text-outline">采样节点：Linode Tokyo-01 -&gt; HKG</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low/50 border-b border-outline-variant text-[11px] font-label-table-head text-tertiary">
+<th class="py-2 px-3 w-44 font-semibold uppercase">检测项 (Probe Target)</th>
+<th class="py-2 px-3 w-28 font-semibold uppercase text-center">协议状态</th>
+<th class="py-2 px-3 font-semibold uppercase">关键指标与行为特征</th>
+<th class="py-2 px-3 w-52 font-semibold uppercase text-right">原始证据锚点</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant text-body-sm text-body-sm">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      GET /v1/models
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        通过 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      暴露完整官方 ID 列表 (包含 gpt-6.1-luna 与 legacy 格式)
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#models_list">
+<span>models_list.json</span>
+<span class="text-outline text-[10px]">(200, 142ms)</span>
+</a>
+</td>
+</tr>
+<!-- Row 2 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      Messages (Non-stream)
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        通过 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      HTTP 200, 符合 JSON Schema, usage 字段 tokens 计数完整
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#raw_msg_req">
+<span>raw_msg_req_01.json</span>
+</a>
+</td>
+</tr>
+<!-- Row 3 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      Tokenizer 一致性
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        吻合 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      提示词 1024 token 与官方 claude-3 计算偏差 0% (无虚增计量)
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#token_audit">
+<span>token_count_audit.log</span>
+</a>
+</td>
+</tr>
+<!-- Row 4 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      SSE 流式响应 (Stream)
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        通过 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      严格符合 content_block_start / delta / stop 序列状态机
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#sse_trace">
+<span>sse_event_stream_trace.txt</span>
+</a>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      System 提示词透传
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        通过 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      注入探针逆向指令校验，system prompt 无损下发，无内插广告
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#sys_reflect">
+<span>sys_probe_reflect.json</span>
+</a>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      Tool Use (工具调用)
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        通过 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      tool_use block 解析正常，input 字典合法 JSON 且往返无损
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#tool_calc">
+<span>tool_calc_roundtrip.json</span>
+</a>
+</td>
+</tr>
+<!-- Row 7 (WARN) -->
+<tr class="bg-amber-50/40 hover:bg-amber-50/60 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-amber-900 text-[12px] flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px] text-amber-600" data-icon="report_problem">report_problem</span>
+                      Extended Thinking
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-amber-100 text-amber-800 border border-amber-300 px-1.5 py-0.5 rounded inline-block">
+                        异常截断 WARN
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-amber-950 text-[12px]">
+                      thinking block 输出至 ~850 token 偶发 connection reset 并发生探针重试
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-amber-800">
+<a class="hover:underline flex items-center justify-end gap-1" href="#thinking_err">
+<span>thinking_err_trace.dump</span>
+</a>
+</td>
+</tr>
+<!-- Row 8 -->
+<tr class="hover:bg-surface-container-low/40 transition-colors">
+<td class="py-2.5 px-3 font-mono font-medium text-on-surface text-[12px]">
+                      持续并发 (10 并发压测)
+                    </td>
+<td class="py-2.5 px-3 text-center">
+<span class="font-mono-badge text-mono-badge bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded inline-block">
+                        达标 PASS
+                      </span>
+</td>
+<td class="py-2.5 px-3 text-on-surface-variant text-[12px]">
+                      99.4% 成功率 (159/160 次握手无 5xx 错误，网关降级率 0.6%)
+                    </td>
+<td class="py-2.5 px-3 text-right font-mono-data-sm text-[11px] text-primary">
+<a class="hover:underline flex items-center justify-end gap-1" href="#stress_csv">
+<span>stress_batch_metrics.csv</span>
+</a>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- 3. Sanitized Raw Evidence Dump (Collapsible code block) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded overflow-hidden" id="raw-evidence">
+<details class="group" open="">
+<summary class="px-3.5 py-2.5 bg-surface-container-low border-b border-outline-variant flex items-center justify-between cursor-pointer select-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="terminal">terminal</span>
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">脱敏证据片段 (Sanitized Raw Evidence Dump)</span>
+<span class="font-mono text-[11px] text-outline ml-2">SHA256: 8c9f0b12a...7d9a1f4</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="text-[11px] text-primary font-mono hover:underline">点击折叠/展开</span>
+<span class="material-symbols-outlined text-[16px] text-outline group-open:rotate-180 transition-transform" data-icon="expand_more">expand_more</span>
+</div>
+</summary>
+<div class="p-3 bg-[#0d1117] text-[#c9d1d9] font-mono text-[11px] leading-relaxed overflow-x-auto space-y-2">
+<div class="text-[#8b949e] border-b border-[#30363d] pb-1.5 flex justify-between items-center">
+<span># RAW_PROBE_SESSION_ID: rep_86gs_20250518_7d9a1f | Target: POST /v1/messages</span>
+<span>Captured by mq-probe @ 2026-11-04T06:28:12Z</span>
+</div>
+<pre class="font-mono"><code><span class="text-[#79c0ff]">&gt; POST /v1/messages HTTP/1.1</span>
+<span class="text-[#79c0ff]">&gt; Host:</span> api.86gamestore.net
+<span class="text-[#79c0ff]">&gt; x-api-key:</span> sk-ant-api03-REDACTED_***LOCAL_AUTH_KEY***
+<span class="text-[#79c0ff]">&gt; anthropic-version:</span> 2023-06-01
+<span class="text-[#79c0ff]">&gt; content-type:</span> application/json
+<span class="text-[#79c0ff]">&gt; accept:</span> text/event-stream
+
+<span class="text-[#7ee787]">&lt; HTTP/1.1 200 OK</span>
+<span class="text-[#7ee787]">&lt; Content-Type:</span> text/event-stream; charset=utf-8
+<span class="text-[#7ee787]">&lt; Transfer-Encoding:</span> chunked
+<span class="text-[#7ee787]">&lt; X-Accel-Buffering:</span> no
+<span class="text-[#7ee787]">&lt; Date:</span> Sun, 18 May 2025 06:28:12 GMT
+
+event: message_start
+data: {"type":"message_start","message":{"id":"msg_019probe_86gs","type":"message","role":"assistant","model":"gpt-6.1-luna-20250219","content":[],"usage":{"input_tokens":32,"output_tokens":1}}}
+
+event: content_block_start
+data: {"type":"content_block_start","index":0,"content_block":{"type":"thinking","thinking":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Analyzing benchmark math payload validation sequence..."}}
+
+<span class="text-[#e3b341]"># [PROBE_TELEMETRY_LOG]: thinking_delta emitted 842 tokens; p95 latency shift 412ms -&gt; 780ms</span>
+<span class="text-[#e3b341]"># [PROBE_EVENT_TRACER]: warning: chunk gap elevated (+112ms) prior to final thinking block close</span>
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":0}
+
+event: message_delta
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn"},"usage":{"output_tokens":94}}
+
+event: message_stop
+data: {"type":"message_stop"}</code></pre>
+<div class="pt-2 border-t border-[#30363d] flex items-center justify-between text-[#8b949e] text-[10px]">
+<span>SHA-256 Digest: <span class="text-[#58a6ff]">f45a7bb932b13c8e54e410f925925a2df6a16ca3102c91a0c9b0e25db3cb02ef</span></span>
+<span>Signature validated via public probe GPG key</span>
+</div>
+</div>
+</details>
+</div>
+<!-- 4. History Strip (历史轮测快照) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-3.5 space-y-2.5">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary" data-icon="history">history</span>
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">历史轮测快照 (Recent 6 Cycles / 3-Hour Horizon)</span>
+</div>
+<span class="text-[11px] text-on-surface-variant font-mono">采样步长: 30 min / 周期</span>
+</div>
+<div class="grid grid-cols-2 sm:grid-cols-6 gap-2 pt-1">
+<!-- Snap 1: 14:28 (Current) -->
+<div class="bg-surface-container-low border border-primary/40 rounded p-2 text-center relative overflow-hidden">
+<div class="text-[10px] font-mono text-primary font-bold">14:28 (NOW)</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">通过</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface font-semibold">412ms</div>
+<div class="text-[9px] text-outline">7/8 PASS</div>
+</div>
+<!-- Snap 2: 13:58 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2 text-center hover:bg-surface-container-low transition-colors">
+<div class="text-[10px] font-mono text-on-surface-variant">13:58</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">通过</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface font-semibold">395ms</div>
+<div class="text-[9px] text-outline">8/8 PASS</div>
+</div>
+<!-- Snap 3: 13:28 (WARN) -->
+<div class="bg-amber-50/50 border border-amber-200 rounded p-2 text-center">
+<div class="text-[10px] font-mono text-amber-900 font-medium">13:28</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-amber-100 text-amber-800 border border-amber-300 px-1 py-0.2 rounded">警告</span>
+</div>
+<div class="text-[11px] font-mono text-amber-900 font-semibold">584ms</div>
+<div class="text-[9px] text-amber-700">Thinking 502</div>
+</div>
+<!-- Snap 4: 12:58 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2 text-center hover:bg-surface-container-low transition-colors">
+<div class="text-[10px] font-mono text-on-surface-variant">12:58</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">通过</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface font-semibold">408ms</div>
+<div class="text-[9px] text-outline">8/8 PASS</div>
+</div>
+<!-- Snap 5: 12:28 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2 text-center hover:bg-surface-container-low transition-colors">
+<div class="text-[10px] font-mono text-on-surface-variant">12:28</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">通过</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface font-semibold">419ms</div>
+<div class="text-[9px] text-outline">8/8 PASS</div>
+</div>
+<!-- Snap 6: 11:58 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-2 text-center hover:bg-surface-container-low transition-colors">
+<div class="text-[10px] font-mono text-on-surface-variant">11:58</div>
+<div class="my-1">
+<span class="font-mono-badge text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-300 px-1 py-0.2 rounded">通过</span>
+</div>
+<div class="text-[11px] font-mono text-on-surface font-semibold">391ms</div>
+<div class="text-[9px] text-outline">8/8 PASS</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right 30% Column (3 Cols on desktop) -->
+<div class="lg:col-span-3 space-y-space-md">
+<!-- 1. Report Metadata Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 space-y-3">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">报告元数据</span>
+<span class="font-mono text-[10px] text-outline">REPORT META</span>
+</div>
+<dl class="space-y-2 text-[12px] font-mono-data-sm">
+<div class="flex justify-between">
+<dt class="text-outline">Report ID</dt>
+<dd class="text-on-surface font-semibold">rep_86gs_20250518</dd>
+</div>
+<div class="flex justify-between">
+<dt class="text-outline">Probe Node</dt>
+<dd class="text-on-surface">Linode Tokyo-01</dd>
+</div>
+<div class="flex justify-between">
+<dt class="text-outline">Target Cluster</dt>
+<dd class="text-on-surface">HKG Edge Region</dd>
+</div>
+<div class="flex justify-between">
+<dt class="text-outline">Engine Version</dt>
+<dd class="text-on-surface">mq-probe/0.9.4</dd>
+</div>
+<div class="flex justify-between">
+<dt class="text-outline">Audit Commit</dt>
+<dd class="text-primary hover:underline cursor-pointer">7d9a1f4</dd>
+</div>
+<div class="flex justify-between">
+<dt class="text-outline">Source PR</dt>
+<dd>
+<a class="text-primary hover:underline" href="https://github.com/relayquality/probes/pull/19" rel="noreferrer" target="_blank">#19 (Merged)</a>
+</dd>
+</div>
+</dl>
+<!-- Evidence actions -->
+<div class="pt-2 border-t border-outline-variant flex flex-col gap-2">
+<button class="w-full bg-primary-container text-on-primary py-1.5 px-3 rounded text-[13px] font-medium border border-primary hover:bg-primary transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px]" data-icon="download">download</span>
+<span>下载 Markdown 证据包</span>
+</button>
+<button class="w-full bg-surface-container-lowest text-on-surface py-1.5 px-3 rounded text-[13px] font-medium border border-outline-variant hover:bg-surface-container-low transition-colors flex items-center justify-center gap-1.5">
+<span class="material-symbols-outlined text-[16px] text-tertiary" data-icon="verified_user">verified_user</span>
+<span>校验 SHA-256 签名</span>
+</button>
+</div>
+</div>
+<!-- 2. Local Reproduction Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 space-y-2.5">
+<div class="flex items-center gap-2 border-b border-outline-variant pb-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="terminal">terminal</span>
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">本地复现测试</span>
+</div>
+<p class="text-[12px] text-on-surface-variant leading-relaxed">
+              所有测试工具完全开源。开发者可在任意本地机器或海外 VPS 终端中运行独立探针脚本验证上述结果。密钥全程保留在本地内存，探针绝不上传 Key。
+            </p>
+<div class="relative bg-[#0d1117] text-[#c9d1d9] rounded p-2.5 font-mono text-[11px] leading-tight">
+<div class="text-[10px] text-[#8b949e] mb-1 select-none"># 复制并填入您在 86GameStore 的 API Key:</div>
+<pre class="overflow-x-auto selection:bg-[#264f78]"><code class="break-all whitespace-pre-wrap">curl -sSL https://mq.80aj.com/mq.py | python3 - \
+  --base https://api.86gamestore.net/v1 \
+  --key $YOUR_KEY \
+  --model gpt-6.1-luna</code></pre>
+<button class="absolute top-2 right-2 p-1 bg-[#21262d] hover:bg-[#30363d] rounded text-[#8b949e] hover:text-[#c9d1d9] transition-colors border border-[#30363d]" onclick="navigator.clipboard.writeText('curl -sSL https://mq.80aj.com/mq.py | python3 - --base https://api.86gamestore.net/v1 --key $YOUR_KEY --model gpt-6.1-luna')" title="复制 CLI 命令">
+<span class="material-symbols-outlined text-[14px]" data-icon="content_copy">content_copy</span>
+</button>
+</div>
+<div class="flex items-center gap-1.5 text-[11px] text-outline">
+<span class="material-symbols-outlined text-[14px] text-emerald-600" data-icon="lock">lock</span>
+<span>纯只读探测 · 无状态会话 · 0 日志存储</span>
+</div>
+</div>
+<!-- 3. Neutrality & Probe Limits Guidance -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 space-y-2.5">
+<div class="flex items-center gap-2 border-b border-outline-variant pb-2">
+<span class="material-symbols-outlined text-outline text-[18px]" data-icon="policy">policy</span>
+<span class="font-label-table-head text-label-table-head text-on-surface uppercase">客观声明与公立规则</span>
+</div>
+<ul class="text-[12px] text-on-surface-variant space-y-2 leading-relaxed">
+<li class="flex items-start gap-1.5">
+<span class="text-primary font-bold">·</span>
+<span><strong>零商业赞助：</strong> RelayQuality 由独立开发者社区维护，不接受任何服务商付费打榜或推荐位赞助。</span>
+</li>
+<li class="flex items-start gap-1.5">
+<span class="text-primary font-bold">·</span>
+<span><strong>无返利渠道：</strong> 所有服务商链接均为无 Affiliate 原始域名，杜绝利益捆绑。</span>
+</li>
+<li class="flex items-start gap-1.5">
+<span class="text-primary font-bold">·</span>
+<span><strong>探针能力边界：</strong> 无法感知中间网关是否存在内容审查旁路、日志落地行为或并发限速池。</span>
+</li>
+<li class="flex items-start gap-1.5">
+<span class="text-primary font-bold">·</span>
+<span><strong>复核与异议：</strong> 如服务商端点配置升级，请直接提交 Pull Request 更新轮测描述档。</span>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<!-- Page Footer -->
+<footer class="pt-6 pb-8 border-t border-outline-variant flex flex-col sm:flex-row justify-between items-center text-[12px] text-outline gap-2">
+<div class="flex items-center gap-2">
+<span>RelayQuality · Anthropic Messages API Neutral Benchmarking Probe</span>
+<span>·</span>
+<span>Open Source under Apache-2.0</span>
+</div>
+<div class="flex items-center gap-4">
+<a class="hover:text-on-surface" href="#">评测基准说明书</a>
+<a class="hover:text-on-surface" href="#">提交复测申请</a>
+<a class="hover:text-on-surface" href="#">GitHub 仓库</a>
+</div>
+</footer>
+</div>
+</main>
+</body></html>

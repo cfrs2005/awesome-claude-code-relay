@@ -170,6 +170,11 @@ def public_result(binding: dict) -> dict:
     }
 
 
+def verification_url(pr: int) -> str:
+    """Return the stable, shareable verification workspace URL for a PR."""
+    return f"{BASE_URL}/pr/{pr}"
+
+
 # ---------------------------------------------------------------- engine ---
 
 def run_engine(base_url: str, key: str, model: str, out_dir: Path) -> tuple[dict, str]:
@@ -245,7 +250,8 @@ async def api_register_pr(request: Request):
             "updated_at": int(time.time()),
         })
         save_store(store)
-    return {"ok": True, "pr": pr, "api_base": binding["api_base"]}
+    return {"ok": True, "pr": pr, "api_base": binding["api_base"],
+            "verification_url": verification_url(pr)}
 
 
 @app.get("/api/prs")
@@ -259,6 +265,7 @@ def api_list_prs():
                     "api_base": b.get("api_base"), "author": b.get("author"),
                     "kind": b.get("kind"), "model": b.get("model"),
                     "repo": b.get("repo") or REPO,
+                    "verification_url": verification_url(b["pr"]),
                     "result": public_result(b)})
     return {"prs": out}
 
@@ -273,7 +280,8 @@ def api_get_pr(pr: int, request: Request):
         raise HTTPException(401, "login required")
     binding = get_binding(pr)
     if not binding:
-        return {"registered": False, "requires_verification": False, "verified": False}
+        return {"registered": False, "requires_verification": False, "verified": False,
+                "verification_url": verification_url(pr)}
     return {
         "registered": True,
         "repo": binding["repo"],
@@ -282,6 +290,7 @@ def api_get_pr(pr: int, request: Request):
         "author": binding["author"],
         "kind": binding["kind"],
         "requires_verification": binding["requires_verification"],
+        "verification_url": verification_url(pr),
         "key_ready": str(pr) in KEYS and KEYS[str(pr)]["exp"] > time.time(),
         "result": public_result(binding),
     }
@@ -415,6 +424,7 @@ def api_run(pr: int, request: Request):
             md + (f"\n\n---\n- 实测端点: `{tested_base}`"
                   + ("\n- ⚠️ 实测端点与 PR 声明的 api_base 不一致，请先更新 PR" if pub["base_mismatch"] else "")
                   + f"\n- 引擎: `{engine_v}` · 报告: {report_url}"
+                  + f"\n- PR 验证工作台: {verification_url(pr)}"
                   + ("\n- ✅ 验证通过：请在 PR 下评论 `/mq-done` 触发自动合并"
                      if pub["verified"] else "\n- ❌ 未通过：可修复后在 Hub 重新提交 Key 复测")))
         return {"ok": True, **pub, "github": {"comment": comment}}
@@ -429,6 +439,12 @@ def get_report(pr: int, name: str):
     if not p.is_file():
         raise HTTPException(404, "report not found")
     return FileResponse(p, media_type="text/markdown" if safe.endswith(".md") else "application/json")
+
+
+@app.get("/pr/{pr}", response_class=HTMLResponse)
+def pr_workspace(pr: int):
+    """Stable per-PR entry point; the page filters itself to this PR."""
+    return PAGE.replace("TTL_EXPIRE", str(KEY_TTL // 60))
 
 
 # ---- OAuth（可选升级，配置了才显示） ---------------------------------------
@@ -510,11 +526,13 @@ async function boot() {
   const who = me ? '已绑定身份：<code>' + me.login + '</code>' : '未绑定身份（在每个 PR 面板里用「绑定码」完成身份验证）';
   st.innerHTML = '<b>状态</b> · ' + who;
   const main = document.getElementById('main');
+  const directPr = new URLSearchParams(location.search).get('pr') || (location.pathname.match(/^\\/pr\\/(\\d+)/) || [])[1];
   const d = await j('/api/prs');
-  if (!d.prs.length) { main.innerHTML = '<div class="card muted">暂无已注册的待验证 PR。提交 PR 修改 <code>providers/*.json</code> 后会自动出现在这里。</div>'; return; }
+  const prs = directPr ? d.prs.filter(x => String(x.pr) === String(directPr)) : d.prs;
+  if (!prs.length) { main.innerHTML = '<div class="card muted">未找到这个 PR 的验证记录。请确认 PR 已由 Action 注册到 MQ Hub。</div>'; return; }
   main.innerHTML = '';
   window.PRMAP = {};
-  for (const b of d.prs) {
+  for (const b of prs) {
     window.PRMAP[b.pr] = b;
     const res = b.result || {};
     const mine = me && me.login && b.author && me.login.toLowerCase() === b.author.toLowerCase();
@@ -524,6 +542,7 @@ async function boot() {
     let inner = `<b><a href="https://github.com/${b.repo||'cfrs2005/awesome-claude-code-relay'}/pull/${b.pr}" target="_blank" rel="noopener">#${b.pr} ${b.provider_id||''} ↗</a></b> ${badge}` +
       (mine ? ' <span class="tag">我是作者</span>' : '') +
       `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code> · 测试模型 <code>${b.model||'claude-haiku-4-5'}</code>` +
+      `<br><span class="muted">PR 验证地址 <code>${b.verification_url || (location.origin + '/pr/' + b.pr)}</code> · <button onclick="navigator.clipboard.writeText('${b.verification_url || ''}')">复制地址</button></span>` +
       (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
     if (res.verified) {
       if (mine) inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;

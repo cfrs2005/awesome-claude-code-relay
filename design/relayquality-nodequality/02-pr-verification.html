@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+
+<html class="h-full" lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>RelayQuality PR 独立验证工作台 - /pr/23</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "primary-container": "#2563eb",
+            "tertiary": "#4d556b",
+            "secondary": "#006780",
+            "on-secondary-fixed": "#001f28",
+            "error": "#ba1a1a",
+            "on-surface-variant": "#434655",
+            "tertiary-fixed": "#dae2fd",
+            "on-tertiary-container": "#eef0ff",
+            "on-secondary-fixed-variant": "#004e61",
+            "surface-dim": "#cbdbf5",
+            "surface-bright": "#f8f9ff",
+            "inverse-on-surface": "#eaf1ff",
+            "surface-container-high": "#dce9ff",
+            "outline-variant": "#c3c6d7",
+            "on-tertiary-fixed-variant": "#3f465c",
+            "secondary-fixed": "#b7eaff",
+            "on-secondary": "#ffffff",
+            "on-background": "#0b1c30",
+            "tertiary-fixed-dim": "#bec6e0",
+            "surface": "#f8f9ff",
+            "on-surface": "#0b1c30",
+            "inverse-surface": "#213145",
+            "on-tertiary-fixed": "#131b2e",
+            "primary-fixed": "#dbe1ff",
+            "on-primary-container": "#eeefff",
+            "on-primary-fixed-variant": "#003ea8",
+            "tertiary-container": "#656d84",
+            "primary-fixed-dim": "#b4c5ff",
+            "inverse-primary": "#b4c5ff",
+            "surface-tint": "#0053db",
+            "surface-container-highest": "#d3e4fe",
+            "secondary-container": "#76dcff",
+            "surface-container-lowest": "#ffffff",
+            "error-container": "#ffdad6",
+            "on-primary": "#ffffff",
+            "on-primary-fixed": "#00174b",
+            "surface-variant": "#d3e4fe",
+            "surface-container": "#e5eeff",
+            "background": "#f8f9ff",
+            "on-error-container": "#93000a",
+            "surface-container-low": "#eff4ff",
+            "primary": "#004ac6",
+            "on-tertiary": "#ffffff",
+            "outline": "#737686",
+            "secondary-fixed-dim": "#6cd3f7",
+            "on-error": "#ffffff",
+            "on-secondary-container": "#006077"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "spacing": {
+            "space-sm": "0.375rem",
+            "gutter-desktop": "1rem",
+            "space-lg": "0.75rem",
+            "margin": "1rem",
+            "margin-desktop": "1.5rem",
+            "space-xs": "0.25rem",
+            "space-xl": "1rem",
+            "space-md": "0.5rem",
+            "gutter": "0.75rem"
+          },
+          "fontFamily": {
+            "headline-sm": ["Inter"],
+            "body-sm": ["Inter"],
+            "mono-metric-md": ["JetBrains Mono"],
+            "mono-badge": ["JetBrains Mono"],
+            "body-md": ["Inter"],
+            "headline-xl": ["Inter"],
+            "headline-lg": ["Inter"],
+            "mono-data-sm": ["JetBrains Mono"],
+            "mono-metric-lg": ["JetBrains Mono"],
+            "headline-xl-mobile": ["Inter"],
+            "label-table-head": ["Inter"]
+          },
+          "fontSize": {
+            "headline-sm": ["16px", { "lineHeight": "22px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+            "body-sm": ["13px", { "lineHeight": "18px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "mono-metric-md": ["15px", { "lineHeight": "20px", "letterSpacing": "-0.01em", "fontWeight": "500" }],
+            "mono-badge": ["11px", { "lineHeight": "14px", "letterSpacing": "0.02em", "fontWeight": "600" }],
+            "body-md": ["14px", { "lineHeight": "20px", "letterSpacing": "-0.005em", "fontWeight": "400" }],
+            "headline-xl": ["30px", { "lineHeight": "36px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-lg": ["22px", { "lineHeight": "28px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "mono-data-sm": ["12px", { "lineHeight": "16px", "letterSpacing": "0em", "fontWeight": "400" }],
+            "mono-metric-lg": ["24px", { "lineHeight": "28px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+            "headline-xl-mobile": ["24px", { "lineHeight": "30px", "letterSpacing": "-0.015em", "fontWeight": "600" }],
+            "label-table-head": ["12px", { "lineHeight": "16px", "letterSpacing": "0.03em", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+      vertical-align: middle;
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased font-body-md text-body-md h-full selection:bg-surface-container-high selection:text-primary">
+<!-- ==================== SHARED COMPONENT 1: SideNavBar ==================== -->
+<aside class="w-56 h-screen fixed left-0 top-0 flex flex-col z-40 bg-surface-container-lowest border-r border-outline-variant shrink-0 justify-between py-margin px-space-md select-none">
+<div class="flex flex-col gap-space-md">
+<!-- Brand Anchor -->
+<div class="px-space-sm py-space-xs flex items-center gap-space-sm border-b border-outline-variant pb-space-md">
+<span class="material-symbols-outlined text-primary" data-icon="terminal">terminal</span>
+<div>
+<span class="font-headline-sm text-headline-sm text-on-surface tracking-tight font-semibold block leading-tight">RelayQuality</span>
+<span class="font-mono-data-sm text-mono-data-sm text-on-surface-variant block mt-0.5">Anthropic API Probe</span>
+</div>
+</div>
+<!-- Navigation Tabs (Shared Component Exact Strings) -->
+<nav class="flex flex-col gap-1 mt-space-xs">
+<!-- 质量总览 -->
+<a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer font-body-md text-body-md" href="#overview">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>质量总览</span>
+</a>
+<!-- 服务商 -->
+<a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer font-body-md text-body-md" href="#providers">
+<span class="material-symbols-outlined" data-icon="dns">dns</span>
+<span>服务商</span>
+</a>
+<!-- 验证说明 (Active in Verification Workspace) -->
+<a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg bg-surface-container text-primary font-headline-sm transition-colors duration-150 cursor-pointer" href="#verify">
+<span class="material-symbols-outlined" data-icon="fact_check" style="font-variation-settings: 'FILL' 1;">fact_check</span>
+<span>验证说明</span>
+</a>
+<!-- 提交服务商 -->
+<a class="flex items-center gap-space-md px-space-md py-space-sm rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low transition-colors duration-150 cursor-pointer font-body-md text-body-md" href="#submit">
+<span class="material-symbols-outlined" data-icon="add_box">add_box</span>
+<span>提交服务商</span>
+</a>
+</nav>
+</div>
+<!-- SideNavBar Footer -->
+<div class="flex flex-col gap-space-sm border-t border-outline-variant pt-space-md">
+<div class="flex flex-col gap-1">
+<a class="flex items-center gap-space-sm px-space-sm py-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm hover:bg-surface-container-low rounded-lg transition-colors" href="#legend">
+<span class="material-symbols-outlined text-[16px]" data-icon="info">info</span>
+<span>状态图例</span>
+</a>
+<a class="flex items-center gap-space-sm px-space-sm py-1 text-on-surface-variant hover:text-on-surface text-body-sm font-body-sm hover:bg-surface-container-low rounded-lg transition-colors" href="#docs">
+<span class="material-symbols-outlined text-[16px]" data-icon="terminal">terminal</span>
+<span>系统说明</span>
+</a>
+</div>
+<!-- Node telemetry anchor text -->
+<div class="p-space-sm bg-surface-container-low rounded-lg border border-outline-variant">
+<div class="flex items-center gap-1.5 text-on-surface-variant font-mono-data-sm text-mono-data-sm">
+<span class="w-2 h-2 rounded-full bg-emerald-600 shrink-0"></span>
+<span class="truncate">Tokyo-01 (Linode)</span>
+</div>
+<div class="font-mono-badge text-mono-badge text-on-surface-variant mt-0.5 tracking-tight truncate">
+          v0.9.4-rc2 · commit 7d9a1f4
+        </div>
+</div>
+</div>
+</aside>
+<!-- ==================== SHARED COMPONENT 2: TopNavBar ==================== -->
+<header class="h-16 pl-56 w-full fixed top-0 left-0 z-30 flex items-center bg-surface-container-lowest border-b border-outline-variant">
+<div class="flex justify-between items-center h-16 px-margin w-full">
+<!-- Breadcrumb & Direct Workspace Title -->
+<div class="flex items-center gap-space-md">
+<nav aria-label="Breadcrumb" class="flex items-center gap-2 font-body-sm text-body-sm text-on-surface-variant">
+<a class="hover:text-primary transition-colors" href="#">质量总览</a>
+<span class="text-outline-variant">/</span>
+<span class="hover:text-on-surface">PR 验证</span>
+<span class="text-outline-variant">/</span>
+<span class="font-mono-metric-md text-mono-metric-md text-primary font-semibold">PR #23</span>
+</nav>
+<span class="h-4 w-px bg-outline-variant"></span>
+<span class="font-mono-badge text-mono-badge bg-surface-container px-2 py-0.5 rounded text-primary border border-outline-variant">DIRECT-WORKSPACE</span>
+</div>
+<!-- Trailing Controls from JSON: Probe node, refresh, code, GitHub -->
+<div class="flex items-center gap-space-md">
+<div class="flex items-center gap-1.5 px-space-md py-1 bg-surface-container-low border border-outline-variant rounded-lg text-body-sm font-body-sm text-on-surface">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+<span class="font-mono-data-sm text-mono-data-sm">Asia-East (HKG)</span>
+</div>
+<button class="w-7 h-7 flex items-center justify-center border border-outline-variant rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant transition-colors duration-150" title="刷新探针状态">
+<span class="material-symbols-outlined text-[16px]" data-icon="refresh">refresh</span>
+</button>
+<button class="w-7 h-7 flex items-center justify-center border border-outline-variant rounded-lg bg-surface-container-lowest hover:bg-surface-container text-on-surface-variant transition-colors duration-150" title="查看探针协议规格">
+<span class="material-symbols-outlined text-[16px]" data-icon="code">code</span>
+</button>
+<a class="flex items-center gap-1.5 px-space-md py-1 border border-outline-variant rounded-lg bg-surface-container-lowest hover:bg-surface-container text-body-sm font-body-sm text-on-surface transition-colors duration-150" href="https://github.com" rel="noreferrer" target="_blank">
+<span class="font-headline-sm text-body-sm">GitHub</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="north_east">north_east</span>
+</a>
+</div>
+</div>
+</header>
+<!-- ==================== MAIN CONTENT CANVAS ==================== -->
+<main class="pl-56 pt-16 min-h-screen bg-background pb-12">
+<div class="max-w-[1440px] mx-auto p-margin-desktop space-y-space-xl">
+<!-- SECTION 1: Direct Verification URL Banner (Direct PR Access) -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-md flex flex-col md:flex-row md:items-center justify-between gap-space-md">
+<div class="flex items-center gap-space-md">
+<div class="w-8 h-8 rounded-lg bg-surface-container-low border border-outline-variant flex items-center justify-center text-primary shrink-0">
+<span class="material-symbols-outlined" data-icon="link">link</span>
+</div>
+<div>
+<div class="flex items-center gap-2">
+<span class="font-headline-sm text-body-sm font-semibold text-on-surface">专属独立验证工作台</span>
+<span class="font-mono-badge text-mono-badge px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200">待身份绑定 (Binding Pending)</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">PR 作者可直接保存并分享此专属工作台链接，后续探针流水线、沙箱报告均实时固化于此地址。</p>
+</div>
+</div>
+<div class="flex items-center gap-2 max-w-lg w-full md:w-auto">
+<div class="flex items-center bg-surface-container-low border border-outline-variant rounded-lg px-2.5 py-1 text-on-surface w-full md:w-80">
+<span class="material-symbols-outlined text-[16px] text-outline mr-1.5" data-icon="terminal">terminal</span>
+<input class="bg-transparent border-0 p-0 text-on-surface font-mono-data-sm text-mono-data-sm focus:ring-0 w-full select-all" readonly="" type="text" value="https://mq.80aj.com/pr/23"/>
+</div>
+<button class="px-space-md py-1.5 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-lg font-body-sm text-body-sm font-medium text-on-surface flex items-center gap-1 transition-colors duration-150 shrink-0" onclick="navigator.clipboard.writeText('https://mq.80aj.com/pr/23')">
+<span class="material-symbols-outlined text-[15px]" data-icon="content_copy">content_copy</span>
+<span>复制链接</span>
+</button>
+</div>
+</section>
+<!-- SECTION 2: PR Identity & Metadata Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-xl">
+<div class="flex flex-col lg:flex-row lg:items-center justify-between pb-space-md border-b border-outline-variant gap-space-md">
+<div class="flex items-start gap-space-md">
+<div class="p-2 rounded-lg bg-surface-container border border-outline-variant text-primary shrink-0 mt-0.5">
+<span class="material-symbols-outlined" data-icon="dns">dns</span>
+</div>
+<div>
+<div class="flex flex-wrap items-center gap-2">
+<h1 class="font-headline-lg text-headline-lg text-on-surface">86GameStore</h1>
+<span class="font-mono-data-sm text-mono-data-sm text-on-surface-variant bg-surface-container px-2 py-0.5 rounded border border-outline-variant">provider: 86gamestore</span>
+<span class="font-mono-badge text-mono-badge px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-blue-600 animate-ping"></span>
+                  STEP 2 / 4 ACTIVE
+                </span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                声明代理 Anthropic Claude 原生流式协议，已分配 Tokyo-01 节点执行全项 Messages API 合规探测。
+              </p>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<a class="px-space-md py-1.5 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant rounded-lg font-body-sm text-body-sm text-on-surface flex items-center gap-1.5 transition-colors" href="https://github.com/relayquality/probes/pull/23" rel="noreferrer" target="_blank">
+<span class="material-symbols-outlined text-[16px]" data-icon="call_split">call_split</span>
+<span>查看 PR #23 原文</span>
+<span class="material-symbols-outlined text-[13px] text-outline" data-icon="north_east">north_east</span>
+</a>
+</div>
+</div>
+<!-- 6-Point Technical Spec Grid -->
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-space-md pt-space-md">
+<div class="p-space-sm bg-surface-container-low border border-outline-variant rounded-lg">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant block uppercase">GitHub PR</span>
+<span class="font-mono-data-sm text-mono-data-sm text-primary font-medium block truncate mt-0.5">#23 (feat: proxy)</span>
+</div>
+<div class="p-space-sm bg-surface-container-low border border-outline-variant rounded-lg">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant block uppercase">PR 作者 (User)</span>
+<span class="font-mono-data-sm text-mono-data-sm text-on-surface block truncate mt-0.5">@cfrs2005</span>
+</div>
+<div class="p-space-sm bg-surface-container-low border border-outline-variant rounded-lg lg:col-span-2">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant block uppercase">声明 api_base</span>
+<span class="font-mono-data-sm text-mono-data-sm text-on-surface block truncate mt-0.5">https://api.86gamestore.com</span>
+</div>
+<div class="p-space-sm bg-surface-container-low border border-outline-variant rounded-lg">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant block uppercase">声明主测模型</span>
+<span class="font-mono-badge text-mono-badge text-on-surface block truncate mt-0.5">gpt-6.1-luna</span>
+</div>
+<div class="p-space-sm bg-surface-container-low border border-outline-variant rounded-lg">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant block uppercase">提交时间</span>
+<span class="font-mono-data-sm text-mono-data-sm text-on-surface-variant block truncate mt-0.5">48 分钟前</span>
+</div>
+</div>
+</section>
+<!-- SECTION 3: Horizontal 4-Step Verification Progress Rail -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-md">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-space-md relative">
+<!-- Step 1: Done -->
+<div class="flex items-center gap-3 p-space-md rounded-lg bg-surface-container-low border border-outline-variant">
+<div class="w-8 h-8 rounded-full bg-emerald-100 border border-emerald-300 text-emerald-700 flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[18px]" data-icon="check" style="font-variation-settings: 'FILL' 1;">check</span>
+</div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-body-sm font-semibold text-on-surface">1. PR 登记</span>
+<span class="font-mono-badge text-mono-badge text-emerald-700 bg-emerald-50 px-1 rounded">VALID</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Schema JSON 校验通过</p>
+</div>
+</div>
+<!-- Step 2: Active -->
+<div class="flex items-center gap-3 p-space-md rounded-lg bg-primary-container/10 border-2 border-primary-container">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 font-mono-badge text-mono-badge font-bold">
+              02
+            </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-body-sm font-semibold text-primary">2. 身份绑定</span>
+<span class="font-mono-badge text-mono-badge text-primary bg-primary-fixed px-1 rounded">进行中</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">校验 PR 提交者所有权</p>
+</div>
+</div>
+<!-- Step 3: Pending -->
+<div class="flex items-center gap-3 p-space-md rounded-lg bg-surface-container-lowest border border-outline-variant opacity-75">
+<div class="w-8 h-8 rounded-full bg-surface-container text-outline flex items-center justify-center shrink-0 font-mono-badge text-mono-badge">
+              03
+            </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-body-sm font-semibold text-on-surface-variant">3. 提交一次性 Key</span>
+<span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1 rounded">等待中</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">内存阅后即焚 · TTL 20m</p>
+</div>
+</div>
+<!-- Step 4: Pending -->
+<div class="flex items-center gap-3 p-space-md rounded-lg bg-surface-container-lowest border border-outline-variant opacity-75">
+<div class="w-8 h-8 rounded-full bg-surface-container text-outline flex items-center justify-center shrink-0 font-mono-badge text-mono-badge">
+              04
+            </div>
+<div class="min-w-0">
+<div class="flex items-center gap-1.5">
+<span class="font-headline-sm text-body-sm font-semibold text-on-surface-variant">4. 运行探针验证</span>
+<span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1 rounded">队列待机</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Messages API &amp; SSE 流质检</p>
+</div>
+</div>
+</div>
+</section>
+<!-- SECTION 4: Dual-Column Workspace (70% Primary Operations & Previews / 30% Security & Audit Stream) -->
+<div class="grid grid-cols-1 lg:grid-cols-10 gap-space-xl items-start">
+<!-- LEFT COLUMN (70% -> 7 Cols) -->
+<div class="lg:col-span-7 space-y-space-xl">
+<!-- ACTIVE STEP CARD: Step 2 Identity Binding -->
+<div class="bg-surface-container-lowest border-2 border-primary-container rounded-xl p-space-xl">
+<div class="flex items-center justify-between pb-space-md border-b border-outline-variant">
+<div class="flex items-center gap-space-md">
+<span class="w-6 h-6 rounded bg-primary-container text-on-primary-container flex items-center justify-center font-mono-badge text-mono-badge font-bold">2</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">当前操作：GitHub PR 身份核验</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">防冒领认证 (Identity Ownership Probe)</p>
+</div>
+</div>
+<span class="font-mono-badge text-mono-badge text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                TTL 14:18 剩余
+              </span>
+</div>
+<!-- Instruction Box -->
+<div class="py-space-md space-y-space-md">
+<p class="font-body-md text-body-md text-on-surface leading-relaxed">
+                为防止恶意冒领与无授权代理注册，请验证您对 <span class="font-semibold text-primary">GitHub PR #23</span> 的提交权。系统已生成下述专属单次验证指令，请将其直接作为评论发表在 PR 讨论区中，探针机器人将在 10 秒内捕获回复并完成握手。
+              </p>
+<!-- Command Copy Box -->
+<div class="bg-surface-container-low border border-outline-variant rounded-lg p-space-md">
+<div class="flex items-center justify-between text-on-surface-variant font-label-table-head text-label-table-head uppercase pb-1.5 mb-1.5 border-b border-outline-variant/60">
+<span>专属验证指令 (Verify Token Command)</span>
+<span class="font-mono-data-sm text-mono-data-sm text-primary">TARGET: PR #23 DISCUSSION</span>
+</div>
+<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-surface-container-lowest border border-outline-variant rounded p-2">
+<code class="font-mono-metric-md text-mono-data-sm text-on-surface overflow-x-auto whitespace-nowrap py-1 px-1">
+                    /relayquality-verify token=rq_bind_7f9a2e38c119_pr23 expires=15m
+                  </code>
+<button class="px-space-md py-1.5 bg-primary-container text-on-primary-container hover:bg-primary rounded font-body-sm text-body-sm font-medium flex items-center justify-center gap-1 shrink-0 transition-colors" id="copy-btn" onclick="navigator.clipboard.writeText('/relayquality-verify token=rq_bind_7f9a2e38c119_pr23 expires=15m'); this.innerText='已复制!';">
+<span class="material-symbols-outlined text-[15px]" data-icon="content_copy">content_copy</span>
+<span>复制完整指令</span>
+</button>
+</div>
+</div>
+<!-- Next Action Guidance -->
+<div class="flex items-start gap-space-sm p-space-md bg-surface-container/60 border border-outline-variant rounded-lg">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0 mt-0.5" data-icon="info">info</span>
+<div class="font-body-sm text-body-sm text-on-surface leading-normal">
+<span>请前往并回复：</span>
+<a class="text-primary hover:underline font-medium inline-flex items-center gap-0.5" href="https://github.com/relayquality/probes/pull/23" rel="noreferrer" target="_blank">
+                    github.com/relayquality/probes/pull/23 讨论区
+                    <span class="material-symbols-outlined text-[13px]" data-icon="open_in_new">open_in_new</span>
+</a>
+<span class="text-on-surface-variant block mt-0.5">探针 Webhook 会自动捕获来自作者 @cfrs2005 的此条指令并解锁第 3 步提交入口。</span>
+</div>
+</div>
+<!-- Interaction Buttons -->
+<div class="flex flex-wrap items-center gap-space-md pt-space-xs">
+<button class="px-4 py-2 bg-primary-container hover:bg-primary text-on-primary-container rounded-lg font-body-sm text-body-sm font-semibold flex items-center gap-2 border border-blue-700 transition-colors">
+<span class="material-symbols-outlined text-[18px]" data-icon="sync">sync</span>
+<span>我已发表评论，确认绑定</span>
+</button>
+<button class="px-space-md py-2 bg-surface-container-lowest hover:bg-surface-container border border-outline-variant text-on-surface rounded-lg font-body-sm text-body-sm font-medium flex items-center gap-1.5 transition-colors">
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant" data-icon="refresh">refresh</span>
+<span>重新生成绑定码</span>
+</button>
+<div class="flex items-center gap-2 ml-auto text-on-surface-variant font-mono-data-sm text-mono-data-sm">
+<span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+<span>等待 PR 评论事件注入...</span>
+</div>
+</div>
+</div>
+</div>
+<!-- STEP 3 PREVIEW: Ephemeral Key Submission Sandbox -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-xl opacity-90">
+<div class="flex items-center justify-between pb-space-md border-b border-outline-variant">
+<div class="flex items-center gap-space-md">
+<span class="w-6 h-6 rounded bg-surface-container text-outline flex items-center justify-center font-mono-badge text-mono-badge font-bold">3</span>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">后续流程预览：一次性 API Key 提交沙箱</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">完成身份核验后自动解锁</span>
+</div>
+</div>
+<span class="font-mono-badge text-mono-badge px-2 py-0.5 bg-surface-container text-outline rounded">LOCKED</span>
+</div>
+<div class="pt-space-md space-y-space-md">
+<p class="font-body-sm text-body-sm text-on-surface-variant leading-relaxed">
+                RelayQuality 坚持客观中立。为完成对您所声明节点的 Messages API 协议连通性检测，需提供包含最小额度测试的 API Key。系统具备严格的<strong class="text-on-surface">内存阅后即焚机制</strong>：
+              </p>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-md">
+<div class="p-space-md bg-surface-container-low border border-outline-variant rounded-lg">
+<div class="flex items-center gap-1 text-primary font-headline-sm text-body-sm font-semibold mb-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="lock_clock">lock_clock</span>
+<span>TTL 20 分钟</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">探针任务结束或超时后，测试密钥即刻从执行器内存抹除。</p>
+</div>
+<div class="p-space-md bg-surface-container-low border border-outline-variant rounded-lg">
+<div class="flex items-center gap-1 text-primary font-headline-sm text-body-sm font-semibold mb-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="no_photography">no_photography</span>
+<span>零持久化落盘</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">绝不记录至任何 Postgres/Redis/日志文件，探针网络流全程脱敏。</p>
+</div>
+<div class="p-space-md bg-surface-container-low border border-outline-variant rounded-lg">
+<div class="flex items-center gap-1 text-primary font-headline-sm text-body-sm font-semibold mb-1">
+<span class="material-symbols-outlined text-[16px]" data-icon="credit_card_off">credit_card_off</span>
+<span>无绑卡额度限制</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">建议仅注入 0.05 美元或受限测试子密钥，严禁提交生产主密钥。</p>
+</div>
+</div>
+</div>
+</div>
+<!-- STEP 4 PREVIEW: Automated Probe Matrix Spec -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-xl">
+<div class="flex items-center justify-between pb-space-md border-b border-outline-variant">
+<div class="flex items-center gap-space-md">
+<span class="w-6 h-6 rounded bg-surface-container text-outline flex items-center justify-center font-mono-badge text-mono-badge font-bold">4</span>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface">探针验证矩阵项说明 (Automated Probe Matrix)</h3>
+<span class="font-body-sm text-body-sm text-on-surface-variant">完成所有探测项并通过阈值后，自动在 PR 回复准入标签</span>
+</div>
+</div>
+<span class="font-mono-badge text-mono-badge text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">6 项协议检验</span>
+</div>
+<!-- Matrix Checklist Table -->
+<div class="mt-space-md overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-y border-outline-variant h-8 font-label-table-head text-label-table-head text-on-surface-variant uppercase">
+<th class="py-1 px-3">检验科目</th>
+<th class="py-1 px-3">测试协议/特征</th>
+<th class="py-1 px-3">准入阈值要求</th>
+<th class="py-1 px-3 text-right">状态</th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-low">
+<td class="py-2.5 px-3 font-medium text-on-surface">Messages API 端点合规</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">POST /v1/messages</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">HTTP 200 / 结构体对齐 RFC</td>
+<td class="py-2.5 px-3 text-right"><span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1.5 py-0.5 rounded">待测</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low">
+<td class="py-2.5 px-3 font-medium text-on-surface">SSE 流式分块规范</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">content_block_delta</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">严格顺序，无断块拼凑</td>
+<td class="py-2.5 px-3 text-right"><span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1.5 py-0.5 rounded">待测</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low">
+<td class="py-2.5 px-3 font-medium text-on-surface">握手与首字时延 (TTFT)</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">TCP+TLS+First Chunk</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">&lt; 1,800 ms (Tokyo 观测)</td>
+<td class="py-2.5 px-3 text-right"><span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1.5 py-0.5 rounded">待测</span></td>
+</tr>
+<tr class="hover:bg-surface-container-low">
+<td class="py-2.5 px-3 font-medium text-on-surface">模型掺假与降级特征探测</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">Token 熵与推理一致性</td>
+<td class="py-2.5 px-3 font-mono-data-sm text-mono-data-sm text-on-surface-variant">符合 sonnet 官方响应指纹</td>
+<td class="py-2.5 px-3 text-right"><span class="font-mono-badge text-mono-badge text-outline bg-surface-container px-1.5 py-0.5 rounded">待测</span></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="mt-space-md p-space-sm bg-surface-container-low border border-outline-variant rounded flex items-center justify-between font-mono-data-sm text-mono-data-sm text-on-surface-variant">
+<span>探针执行完毕后自动触发 PR 回复：</span>
+<span class="text-primary font-mono-badge text-mono-badge">CI-TRIGGER: /mq-done status=verified</span>
+</div>
+</div>
+</div>
+<!-- RIGHT COLUMN (30% -> 3 Cols): Rules & Audit Stream -->
+<div class="lg:col-span-3 space-y-space-xl">
+<!-- Security & Isolation Rules -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-md space-y-space-md">
+<div class="flex items-center gap-2 border-b border-outline-variant pb-2">
+<span class="material-symbols-outlined text-primary" data-icon="shield">shield</span>
+<h3 class="font-headline-sm text-body-sm font-semibold text-on-surface">探针安全与公立准则</h3>
+</div>
+<div class="space-y-space-sm text-body-sm font-body-sm text-on-surface-variant">
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-emerald-600 mt-0.5 shrink-0" data-icon="verified">verified</span>
+<div>
+<strong class="text-on-surface block font-medium">阅后即焚承诺</strong>
+<span>测试 Key 仅驻留独立 Linux 沙箱内存，进程退出即擦除。</span>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-emerald-600 mt-0.5 shrink-0" data-icon="verified">verified</span>
+<div>
+<strong class="text-on-surface block font-medium">零 AFF &amp; 纯公立</strong>
+<span>不接收商业赞助及推广返利佣金，所有服务商依实时拨测数据客观排序。</span>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<span class="material-symbols-outlined text-[16px] text-emerald-600 mt-0.5 shrink-0" data-icon="verified">verified</span>
+<div>
+<strong class="text-on-surface block font-medium">反掺假模型审计</strong>
+<span>探针将注入特异性字符熵，凡截断或使用廉价小模型套壳者将被标注为 Anomalous。</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Real-Time Audit Log -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-space-md space-y-space-md">
+<div class="flex items-center justify-between border-b border-outline-variant pb-2">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-[18px]" data-icon="receipt_long">receipt_long</span>
+<h3 class="font-headline-sm text-body-sm font-semibold text-on-surface">PR 实时事件审计流</h3>
+</div>
+<span class="flex items-center gap-1 font-mono-badge text-mono-badge text-emerald-700">
+<span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                LIVE
+              </span>
+</div>
+<!-- Timeline Entries -->
+<div class="space-y-3 font-mono-data-sm text-mono-data-sm">
+<div class="flex items-start gap-2">
+<span class="text-outline shrink-0">14:28:10</span>
+<div class="text-on-surface leading-tight">
+<span class="text-primary font-medium">WEBHOOK</span>
+<p class="text-on-surface-variant text-[11px] mt-0.5">PR #23 提交事件捕获，Schema 校验通过</p>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<span class="text-outline shrink-0">14:28:12</span>
+<div class="text-on-surface leading-tight">
+<span class="text-primary font-medium">SESSION</span>
+<p class="text-on-surface-variant text-[11px] mt-0.5">分配独立沙箱 session <code class="text-on-surface">sess_pr23_09a1</code></p>
+</div>
+</div>
+<div class="flex items-start gap-2">
+<span class="text-outline shrink-0">14:31:02</span>
+<div class="text-on-surface leading-tight">
+<span class="text-primary font-medium">TOKEN_GEN</span>
+<p class="text-on-surface-variant text-[11px] mt-0.5">生成身份绑定码 <code class="text-on-surface">rq_bind_7f9a...</code> (TTL 15m)</p>
+</div>
+</div>
+<div class="flex items-start gap-2 border-t border-outline-variant/60 pt-2 bg-surface-container-low -mx-1 p-1.5 rounded">
+<span class="material-symbols-outlined text-[16px] text-amber-600 animate-spin shrink-0" data-icon="progress_activity">progress_activity</span>
+<div class="text-on-surface leading-tight">
+<span class="text-amber-700 font-medium">LISTENING</span>
+<p class="text-on-surface-variant text-[11px] mt-0.5">监听 PR #23 评论区来自 @cfrs2005 的回复...</p>
+</div>
+</div>
+</div>
+<div class="pt-2 border-t border-outline-variant flex justify-between items-center text-on-surface-variant font-mono-badge text-mono-badge">
+<span>SOCKET: CONNECTED</span>
+<span>POLL: 5000ms</span>
+</div>
+</div>
+<!-- Sandbox Runner Diagnostic Node Status -->
+<div class="bg-surface-container-low border border-outline-variant rounded-xl p-space-md">
+<span class="font-label-table-head text-label-table-head text-on-surface-variant uppercase block mb-2">执行节点详情</span>
+<div class="space-y-1.5 font-mono-data-sm text-mono-data-sm text-on-surface">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Probe Node:</span>
+<span class="font-medium">Tokyo-01 (JP-TYO)</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">IPv4 Route:</span>
+<span class="font-medium">Direct HKG BGP</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">TLS Fingerprint:</span>
+<span class="font-medium">uTLS Chrome 124</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Runner Isolation:</span>
+<span class="font-medium text-emerald-700">gVisor Sandbox</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
