@@ -4,10 +4,17 @@
   "type": "commercial",
   "website": "https://86gamestore.com",
   "api_base": "https://api.86gamestore.com",
-  "models_claimed": ["claude-haiku-4-5-20251001"],
+  "models_claimed": [
+    "gpt-6.1-luna"
+  ],
   "payment": [],
   "price_note": "",
-  "notes": "支持 ChatGPT / Claude Code",
+  "notes": "支持 ChatGPT / Claude Code（Claude Code 端点默认模型 gpt-6.1-luna）",
   "added_at": "2026-11-04",
-  "verification": {"status": "unverified", "last_verified_at": null, "engine_version": null, "report_url": null}
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
 }
