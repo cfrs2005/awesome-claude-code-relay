@@ -21,12 +21,29 @@ on:
 
 permissions: {}
 
+# 同一 PR 串行化：评论命令风暴时排队而非并发堆叠
+concurrency:
+  group: providers-check-${{ github.event.pull_request.number || github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   check:
     name: providers-check
+    # ⚠️ 自触发防护（2026-11-04 事故后加固，勿改回 contains）：
+    #    本工作流自己发的评论，正文里带有 "/mq-done" 字样（如失败提示"完成验证后评论 /mq-done"），
+    #    而评论又用 MQ_BOT_TOKEN（用户 PAT）发布 —— PAT 发出的评论会再次触发 issue_comment。
+    #    旧条件用 contains() ⇒ 失败评论 → 再触发 → 再失败评论 …… 24 分钟 777 次运行、60+ 重复评论，
+    #    直到 GitHub 触发二级限流（GraphQL: was submitted too quickly）才被动停下。
+    #
+    #    现在三重门：① 必须是"以 /mq-done 开头"的指令评论（本工作流/Hub 报告均以中文或 ## 开头）
+    #              ② 排除 Bot 身份 ③ 必须是 PR 的评论（非普通 issue）
+    #    新增任何会"发评论"的步骤时：评论正文不得以 /mq-done 开头。
     if: |
       github.event_name == 'pull_request' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/mq-done'))
+      (github.event_name == 'issue_comment'
+       && github.event.issue.pull_request != null
+       && github.event.comment.user.type != 'Bot'
+       && startsWith(github.event.comment.body, '/mq-done'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -114,9 +131,11 @@ jobs:
           if [ -n "$url" ]; then
             curl -fsS -m 20 "$url" -o /tmp/report.md && \
             { echo "## 📋 MQ 验证报告（合并前存档）"; echo; cat /tmp/report.md; } > /tmp/report_full.md && \
+            python3 -c "import pathlib;p=pathlib.Path('/tmp/report_full.md');p.write_text(p.read_text(encoding='utf-8').replace('/mq-done','/mq\u200b-done'),encoding='utf-8')" && \
             gh pr comment "$PR_NUMBER" --body-file /tmp/report_full.md || echo "报告回贴跳过"
           fi
 
+      # 结果评论用"就地更新"而非每次新发：即使逻辑再出问题，PR 上也只有一条评论
       - name: Post result comment
         if: always()
         env:
@@ -139,8 +158,17 @@ jobs:
             body="❌ **Providers Check 未通过**：${reason:-未知}
           详情见 Checks → providers-check 的 Summary。"
           fi
-          gh pr comment "$PR_NUMBER" --body "$body" || \
-            echo "::warning::评论失败（fork PR 未配置 MQ_BOT_TOKEN 时属预期）"
+          # 标记 + 正文写文件；正文中出现的 /mq-done 字样不会被触发（触发条件要求以它开头）
+          printf '%s\n\n<!-- providers-check-result -->\n' "$body" > /tmp/result.md
+          cid=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments?per_page=100" \
+                  --jq '[.[] | select(.body | contains("<!-- providers-check-result -->")) | .id] | last // empty' || true)
+          if [ -n "${cid:-}" ]; then
+            gh api -X PATCH "repos/$REPO/issues/comments/$cid" -f body="$(cat /tmp/result.md)" >/dev/null \
+              && echo "已就地更新结果评论 #$cid" || echo "::warning::结果评论更新失败"
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/result.md || \
+              echo "::warning::评论失败（fork PR 未配置 MQ_BOT_TOKEN 时属预期）"
+          fi
 
       # 直接 squash 合并（分支保护仍生效：required check 由本次运行满足）
       # 用 MQ_BOT_TOKEN（PAT）而非 GITHUB_TOKEN：GITHUB_TOKEN 的合并不会触发 sync-readme 等后续 workflow
