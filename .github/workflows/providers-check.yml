@@ -1,34 +1,41 @@
 name: Providers Check
 
-# 收录 PR 的确定性校验 + 自动合并。
-# 这是自动合并的唯一依据；Claude/GLM 的分诊结论仅供参考。
+# 收录 PR 的确定性校验 + 合并执行器。自动合并的唯一依据；Claude/GLM 的分诊结论仅供参考。
 #
-# 前置要求（仓库设置，一次性）:
-#   - Settings → General → Allow auto-merge: 开启
-#   - Branch protection (main): 将 Providers Check / providers-check 设为 required check
-#   - （可选）Secrets → MQ_BOT_TOKEN: 一个有 contents:write 的 PAT，用于 fork PR 的评论与自动合并
-#     （fork PR 的默认 GITHUB_TOKEN 是只读的；未配置时 fork PR 会降级为"校验通过、人工合并"）
+# 触发:
+#   pull_request (providers/**)      → 常规校验（Hub 验证未通过时在门禁处失败）
+#   issue_comment 包含 /mq-done      → Hub 验证完成后由提交者触发，全绿即直接 squash 合并
+#
+# 前置要求（一次性）:
+#   - Settings → General → Allow squash merge（API 可配）
+#   - 分支保护 required check: providers-check（API 可配）
+#   - Secrets: MQ_HUB_URL / MQ_HUB_TOKEN（Hub 注册与门禁）、MQ_BOT_TOKEN（fork PR 评论与合并）
 
 on:
   pull_request:
     paths:
       - "providers/**"
-      - "README.md"
       - ".github/workflows/providers-check.yml"
+  issue_comment:
+    types: [created]
 
 permissions: {}
 
 jobs:
   check:
     name: providers-check
+    if: |
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request != null && contains(github.event.comment.body, '/mq-done'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     env:
-      PR_AUTHOR: ${{ github.event.pull_request.user.login }}
-      PR_NUMBER: ${{ github.event.pull_request.number }}
+      PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+      PR_AUTHOR: ${{ github.event.pull_request.user.login || github.event.issue.user.login }}
       REPO: ${{ github.repository }}
+      PR_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -41,13 +48,13 @@ jobs:
       - name: Install jsonschema
         run: pip install jsonschema
 
+      - name: Fetch PR head
+        run: git fetch origin "pull/$PR_NUMBER/head:pr-head"
+
       - name: Validate provider changes
         id: validate
         run: |
-          git fetch origin "${{ github.event.pull_request.head.ref }}" HEAD 2>/dev/null || true
-          python3 scripts/check_providers.py \
-            --base origin/"${{ github.event.pull_request.base.ref }}" \
-            --head "${{ github.event.pull_request.head.sha }}"
+          python3 scripts/check_providers.py --base origin/main --head pr-head
 
       # 提交者必须已 Watch 本项目（repos/{repo}/subscribers 公开端点）
       - name: Require author watches this repo
@@ -66,7 +73,7 @@ jobs:
             echo "❌ @$PR_AUTHOR 尚未 Watch 本项目（$REPO 的 subscribers 列表中未找到）"
           fi
 
-      # MQ Hub 验证门禁：新收录条目必须完成 Hub 验证（mq-manual 标签可绕过，转人工合并）
+      # MQ Hub 验证门禁：新收录条目必须完成 Hub 验证（mq-manual 标签绕过 + 禁用自动合并）
       - name: MQ Hub verification gate
         id: hub
         env:
@@ -78,60 +85,74 @@ jobs:
           labels=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.labels[].name' || true)
           if printf '%s\n' "$labels" | grep -qx 'mq-manual'; then
             echo "hub-gate=skipped" >> "$GITHUB_OUTPUT"
-            echo " mq-manual 标签：跳过 Hub 门禁，本 PR 转人工合并（自动合并已禁用）"
+            echo "mq-manual 标签：跳过 Hub 门禁，本 PR 转人工合并（本工作流不执行合并）"
             exit 0
           fi
           if [ -z "$HUB_URL" ] || [ -z "$HUB_TOKEN" ]; then
             echo "hub-gate=unconfigured" >> "$GITHUB_OUTPUT"
-            echo "::warning::MQ_HUB_URL / MQ_HUB_TOKEN 未配置，Hub 门禁未生效（老仓库兼容行为）"
+            echo "::warning::MQ_HUB_URL / MQ_HUB_TOKEN 未配置，Hub 门禁未生效"
             exit 0
           fi
           echo "hub-gate=checked" >> "$GITHUB_OUTPUT"
           code=$(curl -sS -m 20 -o /tmp/hub.json -w '%{http_code}' \
             -H "X-Hub-Token: $HUB_TOKEN" "$HUB_URL/api/prs/$PR_NUMBER") || code=000
           if [ "$code" != "200" ]; then
-            echo "::error::Hub 不可达（HTTP $code）。验证服务暂不可用时新收录 PR 不自动合并；维护者可打 mq-manual 标签转人工"
+            echo "::error::Hub 不可达（HTTP $code）。验证服务暂不可用时不自动合并；维护者可打 mq-manual 标签转人工"
             exit 1
           fi
           python3 scripts/hub_gate.py /tmp/hub.json
 
+      - name: Repost verification report (on /mq-done)
+        if: github.event_name == 'issue_comment'
+        env:
+          GH_TOKEN: ${{ env.PR_TOKEN }}
+          HUB_URL: ${{ secrets.MQ_HUB_URL }}
+          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          url=$(python3 -c "import json;d=json.load(open('/tmp/hub.json'));print((d.get('result') or {}).get('report_url') or '')")
+          if [ -n "$url" ]; then
+            curl -fsS -m 20 "$url" -o /tmp/report.md && \
+            { echo "## 📋 MQ 验证报告（合并前存档）"; echo; cat /tmp/report.md; } > /tmp/report_full.md && \
+            gh pr comment "$PR_NUMBER" --body-file /tmp/report_full.md || echo "报告回贴跳过"
+          fi
+
       - name: Post result comment
         if: always()
         env:
-          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          GH_TOKEN: ${{ env.PR_TOKEN }}
           VALIDATED: ${{ steps.validate.outcome }}
           WATCHED: ${{ steps.watch.outputs.watched }}
+          HUB_GATE: ${{ steps.hub.outcome }}
+          HUB_MODE: ${{ steps.hub.outputs.hub-gate }}
         run: |
           set -euo pipefail
-          if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ]; then
-            body="✅ **Providers Check 通过**
-          - 条目校验：schema / 推广参数 / 重复 id / URL 检查均通过
-          - 提交者 @$PR_AUTHOR 已 Watch 本项目
-          - 满足自动合并条件（若分支保护要求本检查为 required，合并将在全部检查通过后自动执行）
-
-          提醒：收录 ≠ 推荐。如需触发 MQ 官方验证，请按 \`docs/verification-design.md\` 提交一次性临时 Key。"
-          elif [ "$VALIDATED" = "success" ] && [ "$WATCHED" != "true" ]; then
-            body="⚠️ **条目校验通过，但提交者未 Watch 本项目**
-          请 @$PR_AUTHOR 到仓库页面右上角 **Watch → All Activity** 关注本项目后，
-          在本 PR 下评论 \`/recheck\` 重新触发检查。未关注项目贡献者的 PR 不会被合并。"
+          if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ] && { [ "$HUB_MODE" = "skipped" ] || [ "$HUB_GATE" = "success" ]; }; then
+            body="✅ **Providers Check 全部通过**
+          - 条目校验 / Watch 检查 / Hub 门禁均通过$( [ "$HUB_MODE" = "skipped" ] && echo '（mq-manual：转人工合并）' || echo '' )
+          - $( [ "$HUB_MODE" = "skipped" ] && echo '请维护者手动合并' || echo '正在合并…' )"
           else
-            body="❌ **Providers Check 未通过**，请查看 Checks → providers-check 的 Summary 修复后重新推送。
-          常见问题：包含 providers/ 之外的变更、URL 带推广参数、字段不符合 schema。"
+            reason=""
+            [ "$VALIDATED" != "success" ] && reason="${reason}条目校验未通过；"
+            [ "$WATCHED" != "true" ] && reason="${reason}提交者未 Watch 项目；"
+            [ "$HUB_GATE" != "success" ] && [ "$HUB_MODE" != "skipped" ] && reason="${reason}Hub 验证未通过（完成验证后评论 /mq-done）；"
+            body="❌ **Providers Check 未通过**：${reason:-未知}
+          详情见 Checks → providers-check 的 Summary。"
           fi
           gh pr comment "$PR_NUMBER" --body "$body" || \
-            echo "::warning::评论失败（fork PR 且未配置 MQ_BOT_TOKEN 时属预期），结论以上方 Step Summary 为准"
+            echo "::warning::评论失败（fork PR 未配置 MQ_BOT_TOKEN 时属预期）"
 
-      - name: Gate
-        if: steps.validate.outcome != 'success' || steps.watch.outputs.watched != 'true'
-        run: |
-          echo "校验未通过或未 Watch，拒绝合并"
-          exit 1
-
-      - name: Enable auto-merge (squash)
-        if: steps.validate.outcome == 'success' && steps.watch.outputs.watched == 'true' && steps.hub.outputs.hub-gate != 'skipped'
+      # 直接 squash 合并（分支保护仍生效：required check 由本次运行满足）
+      # 用 MQ_BOT_TOKEN（PAT）而非 GITHUB_TOKEN：GITHUB_TOKEN 的合并不会触发 sync-readme 等后续 workflow
+      - name: Merge PR (squash)
+        if: >
+          steps.validate.outcome == 'success' &&
+          steps.watch.outputs.watched == 'true' &&
+          steps.hub.outcome == 'success' &&
+          steps.hub.outputs.hub-gate != 'skipped'
         env:
-          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          GH_TOKEN: ${{ env.PR_TOKEN }}
         run: |
           set -euo pipefail
-          gh pr merge "$PR_NUMBER" --auto --squash --delete-branch \
-            || echo "::warning::自动合并开启失败（fork PR 未配置 MQ_BOT_TOKEN，或仓库未开启 auto-merge）——校验已通过，请维护者手动合并"
+          gh pr merge "$PR_NUMBER" --squash \
+            || echo "::warning::合并失败（可能存在分支保护的其他要求），请维护者手动合并"

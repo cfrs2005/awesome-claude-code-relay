@@ -1,6 +1,9 @@
 name: Sync README
 
-# providers/** 合并进 main 后，自动从 JSON 重新生成 README 目录表。
+# providers/** 合并进 main 后：
+#  1. 从合并提交信息解析 PR 号 (#N)，向 Hub 查询验证结果，回写 verification 状态
+#  2. 从 providers/*.json 重新生成 README 目录表
+# 使用 MQ_BOT_TOKEN 推送（GITHUB_TOKEN 的推送会绕过/不触发后续 workflow，且可能被分支保护拦截）
 
 on:
   push:
@@ -14,14 +17,48 @@ permissions:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+
+      - name: Apply verification result from Hub (post-merge fixup)
+        env:
+          HUB_URL: ${{ secrets.MQ_HUB_URL }}
+          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          msg="${{ github.event.head_commit.message }}"
+          pr=$(printf '%s' "$msg" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          if [ -z "$pr" ] || [ -z "$HUB_URL" ]; then
+            echo "无 PR 号或未配置 Hub，跳过验证回写"
+            exit 0
+          fi
+          code=$(curl -sS -m 20 -o /tmp/hub.json -w '%{http_code}' \
+            -H "X-Hub-Token: $HUB_TOKEN" "$HUB_URL/api/prs/$pr") || code=000
+          [ "$code" = "200" ] || { echo "Hub 查询失败($code)，跳过"; exit 0; }
+          python3 - <<'EOF'
+          import json, os, subprocess, sys
+          d = json.load(open('/tmp/hub.json'))
+          r = d.get('result') or {}
+          pid = d.get('provider_id')
+          if not d.get('registered') or r.get('status') != 'completed' or not pid:
+              print('无已完成验证结果，跳过'); sys.exit(0)
+          verdict = r.get('verdict') if r.get('verified') else r.get('verdict')
+          if verdict == 'evidence_insufficient':
+              verdict = 'inconclusive'
+          f = f'providers/{pid}.json'
+          subprocess.run(['python3', 'scripts/update_verification.py', f,
+                          '--status', verdict, '--engine', r.get('engine') or '',
+                          '--report-url', r.get('report_url') or ''], check=True)
+          EOF
 
       - name: Rebuild providers table
         run: python3 scripts/build_readme.py
@@ -30,10 +67,10 @@ jobs:
         run: |
           git config user.name "mq-bot"
           git config user.email "mq-bot@users.noreply.github.com"
-          if git diff --quiet README.md; then
-            echo "README 无需更新"
+          if git diff --quiet; then
+            echo "无变更"
           else
-            git add README.md
-            git commit -m "chore: sync README providers table [skip ci]"
+            git add -A
+            git commit -m "chore: sync README + verification status [skip ci]"
             git push
           fi

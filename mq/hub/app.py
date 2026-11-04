@@ -3,24 +3,25 @@
 """
 MQ Hub — 中转站官方验证入口（部署于 ntt197, mq.80aj.com）
 
-流程:
+流程（无需 OAuth App / 无需提交者任何 token）:
   1. GitHub Action (register-verify) 从 PR 提取 api_base，POST /api/prs 注册待测条目
-  2. 提交者用 GitHub OAuth 登录 Hub（必须是 PR 作者），提交一次性临时 Key（仅存内存，TTL 20 分钟）
-  3. 提交者在 Hub 上触发测试 → 服务端运行 engine/mq.py → 生成脱敏报告
-  4. 报告回贴 PR 评论 + verification 状态提交到 PR 分支 → providers-check 全绿 → 自动合并
+  2. 提交者在 Hub 获取一次性「绑定码」，到 PR 下评论它（GitHub 即身份证明）
+  3. Hub 校验评论者 == PR 作者 → 发会话 → 提交一次性临时 Key（仅内存，TTL 20 分钟）
+  4. 提交者触发测试 → 服务端运行 engine/mq.py → 报告回贴 PR 评论
+  5. 提交者在 PR 评论 /mq-done → providers-check 全绿 → 直接 squash 合并
 
 安全约定:
   - Key 只存在进程内存，触发即消费（一次性），TTL 过期即焚；绝不写盘/写日志
-  - 报告由引擎脱敏后落盘 data/reports/
-  - 登录身份与 PR 作者强绑定；PR 必须处于 open 状态才允许提交/测试
-
-环境变量见文末 README 或 systemd EnvironmentFile。
+  - 实测端点 = PR 声明端点（注册时由 Action 提取）；覆盖端点提测会被标记并拦截
+  - 门禁 verified 为动态计算: verdict=basic_passed 且 tested_base == 当前 PR api_base
 """
 import base64
+import datetime
 import hashlib
 import hmac
 import json
 import os
+import secrets as pysecrets
 import subprocess
 import sys
 import tempfile
@@ -32,7 +33,7 @@ import urllib.request
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, FileResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
 # ---------------------------------------------------------------- config ---
 
@@ -45,10 +46,11 @@ HUB_TOKEN = os.environ.get("HUB_TOKEN", "")
 SESSION_SECRET = os.environ.get("SESSION_SECRET", "dev-secret-change-me")
 GITHUB_CLIENT_ID = os.environ.get("GITHUB_CLIENT_ID", "")
 GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET", "")
-GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")  # PAT: issues:write + contents:write
+GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN", "")  # PAT 或 gh token: issues:write
 DEV_MODE = os.environ.get("DEV_MODE", "") == "1"
-ALLOW_ANY_AUTHOR = os.environ.get("ALLOW_ANY_AUTHOR", "") == "1"  # 仅联调: 放开作者绑定校验
+ALLOW_ANY_AUTHOR = os.environ.get("ALLOW_ANY_AUTHOR", "") == "1"  # 仅联调
 KEY_TTL = 20 * 60
+BIND_TTL = 15 * 60
 RUN_COOLDOWN = 90
 RUN_TIMEOUT = 300
 
@@ -59,7 +61,8 @@ STORE_PATH = DATA_DIR / "prs.json"
 
 _store_lock = threading.Lock()
 _run_locks: dict[str, threading.Lock] = {}
-KEYS: dict[str, dict] = {}  # pr -> {key, base, exp} 仅内存
+KEYS: dict[str, dict] = {}    # pr -> {key, base, exp} 仅内存
+BINDS: dict[str, dict] = {}   # pr -> {code, exp} 仅内存
 
 app = FastAPI(title="MQ Hub", docs_url=None, redoc_url=None)
 
@@ -85,7 +88,7 @@ def gh_api(method: str, path: str, token: str = "", body: dict | None = None):
     url = f"https://api.github.com{path}"
     data = json.dumps(body).encode() if body is not None else None
     req = urllib.request.Request(url, data=data, method=method, headers={
-        "user-agent": "mq-hub/0.1",
+        "user-agent": "mq-hub/0.2",
         "accept": "application/vnd.github+json",
         **({"authorization": f"Bearer {token}"} if token else {}),
     })
@@ -105,10 +108,10 @@ def gh_api(method: str, path: str, token: str = "", body: dict | None = None):
 
 def pr_info(repo: str, pr: int) -> dict:
     if DEV_MODE and not GITHUB_TOKEN:
-        return {"state": "open", "head": {"ref": f"dev/pr-{pr}"}, "user": {"login": ""}}
+        return {"state": "open", "user": {"login": ""}}
     r = gh_api("GET", f"/repos/{repo}/pulls/{pr}", token=GITHUB_TOKEN)
     if r.get("__error__"):
-        return {"state": "unknown", "head": {"ref": ""}, "user": {"login": ""}}
+        return {"state": "unknown"}
     return r
 
 
@@ -148,22 +151,23 @@ def current_user(request: Request) -> str | None:
 # ---------------------------------------------------------------- helpers --
 
 def public_result(binding: dict) -> dict:
+    """动态计算 verified：verdict 合格 且 实测端点 == 当前声明端点（防测后改 PR）。"""
     r = binding.get("last_result") or {}
+    tested = r.get("tested_base") or ""
+    declared = (binding.get("api_base") or "").rstrip("/")
+    verified = (r.get("status") == "completed" and r.get("verdict") == "basic_passed"
+                and bool(tested) and tested.rstrip("/") == declared)
     return {
         "status": r.get("status"),
         "verdict": r.get("verdict"),
         "tested_base": r.get("tested_base"),
-        "base_mismatch": r.get("base_mismatch"),
-        "verified": r.get("status") == "completed" and r.get("verdict") == "basic_passed"
-                    and not r.get("base_mismatch"),
+        "declared_base": declared or None,
+        "base_mismatch": bool(tested) and tested.rstrip("/") != declared,
+        "verified": verified,
         "report_url": r.get("report_url"),
         "finished_at": r.get("finished_at"),
         "engine": r.get("engine"),
     }
-
-
-def mask_key(k: str) -> str:
-    return (k[:6] + "***" + k[-4:]) if len(k) > 12 else "***"
 
 
 # ---------------------------------------------------------------- engine ---
@@ -191,39 +195,8 @@ def run_engine(base_url: str, key: str, model: str, out_dir: Path) -> tuple[dict
             pass
 
 
-def commit_verification_to_pr(repo: str, pr: int, provider_file: str,
-                              verdict: str, engine: str, report_url: str) -> dict:
-    """把 verification 状态提交到 PR 分支（仅在 PAT 已配置时）。"""
-    if not GITHUB_TOKEN or DEV_MODE:
-        return {"skipped": True}
-    info = pr_info(repo, pr)
-    branch = (info.get("head") or {}).get("ref") or ""
-    if not branch:
-        return {"skipped": True, "reason": "no branch"}
-    path = f"providers/{provider_file}"
-    cur = gh_api("GET", f"/repos/{repo}/contents/{urllib.parse.quote(path)}?ref={urllib.parse.quote(branch)}",
-                 token=GITHUB_TOKEN)
-    if cur.get("__error__"):
-        return {"skipped": True, "reason": cur.get("message", "get failed")}
-    import datetime
-    obj = json.loads(base64.b64decode(cur["content"]).decode("utf-8"))
-    obj["verification"] = {
-        "status": verdict,
-        "last_verified_at": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "engine_version": engine,
-        "report_url": report_url,
-    }
-    put = gh_api("PUT", f"/repos/{repo}/contents/{urllib.parse.quote(path)}", token=GITHUB_TOKEN, body={
-        "message": f"mq: verification -> {verdict} (engine {engine})",
-        "content": base64.b64encode(json.dumps(obj, ensure_ascii=False, indent=2).encode()).decode(),
-        "sha": cur["sha"],
-        "branch": branch,
-    })
-    return {"committed": not put.get("__error__"), "detail": put.get("message", "")}
-
-
 def post_pr_comment(repo: str, pr: int, body: str) -> dict:
-    if not GITHUB_TOKEN or DEV_MODE:
+    if DEV_MODE or not GITHUB_TOKEN:
         return {"skipped": True}
     r = gh_api("POST", f"/repos/{repo}/issues/{pr}/comments", token=GITHUB_TOKEN,
                body={"body": body[:65000]})
@@ -240,25 +213,26 @@ def require_hub_token(request: Request) -> None:
         raise HTTPException(401, "bad hub token")
 
 
+def get_binding(pr: int) -> dict | None:
+    with _store_lock:
+        store = load_store()
+    return store["prs"].get(str(pr))
+
+
 @app.get("/healthz")
 def healthz():
     return {"ok": True, "engine": Path(ENGINE_PATH).exists(),
-            "oauth": bool(GITHUB_CLIENT_ID), "token": bool(GITHUB_TOKEN)}
+            "gh_token": bool(GITHUB_TOKEN), "oauth": bool(GITHUB_CLIENT_ID)}
 
 
 @app.post("/api/prs")
 async def api_register_pr(request: Request):
     require_hub_token(request)
     payload = await request.json()
-    return register_pr(payload)
-
-
-def register_pr(payload: dict) -> dict:
     pr = int(payload["pr"])
     with _store_lock:
         store = load_store()
-        binding = store["prs"].setdefault(str(pr), {
-            "pr": pr, "registered_at": int(time.time())})
+        binding = store["prs"].setdefault(str(pr), {"pr": pr, "registered_at": int(time.time())})
         binding.update({
             "repo": payload.get("repo") or REPO,
             "provider_id": payload.get("provider_id"),
@@ -274,17 +248,28 @@ def register_pr(payload: dict) -> dict:
     return {"ok": True, "pr": pr, "api_base": binding["api_base"]}
 
 
+@app.get("/api/prs")
+def api_list_prs():
+    """公开列表（信息本就公开于仓库/PR）：不含任何 Key。"""
+    with _store_lock:
+        store = load_store()
+    out = []
+    for b in sorted(store["prs"].values(), key=lambda x: -x["pr"]):
+        out.append({"pr": b["pr"], "provider_id": b.get("provider_id"),
+                    "api_base": b.get("api_base"), "author": b.get("author"),
+                    "kind": b.get("kind"), "result": public_result(b)})
+    return {"prs": out}
+
+
 @app.get("/api/prs/{pr}")
 def api_get_pr(pr: int, request: Request):
-    """providers-check 的合并门禁调用（X-Hub-Token），或登录用户查看。"""
+    """门禁查询（X-Hub-Token）或登录用户查看。"""
     if request.headers.get("x-hub-token") and HUB_TOKEN and hmac.compare_digest(
             request.headers["x-hub-token"], HUB_TOKEN):
         pass
     elif not current_user(request):
         raise HTTPException(401, "login required")
-    with _store_lock:
-        store = load_store()
-    binding = store["prs"].get(str(pr))
+    binding = get_binding(pr)
     if not binding:
         return {"registered": False, "requires_verification": False, "verified": False}
     return {
@@ -300,16 +285,63 @@ def api_get_pr(pr: int, request: Request):
     }
 
 
+# ---- 身份绑定（评论绑定码，无需 OAuth App） --------------------------------
+
+@app.post("/api/prs/{pr}/bind/start")
+def api_bind_start(pr: int, request: Request):
+    user = current_user(request)
+    binding = get_binding(pr)
+    if not binding:
+        raise HTTPException(404, "该 PR 未注册验证")
+    if user and (binding.get("author") or "").lower() == user.lower():
+        return {"already_bound": True, "login": user}
+    code = "MQ-" + pysecrets.token_hex(4).upper()
+    BINDS[str(pr)] = {"code": code, "exp": int(time.time()) + BIND_TTL}
+    return {"code": code, "expires_in": BIND_TTL,
+            "instruction": f"请在 PR #{pr} 下评论: {code}（用提交 PR 的 GitHub 账号），然后回到这里点「我已评论」"}
+
+
+@app.post("/api/prs/{pr}/bind/confirm")
+def api_bind_confirm(pr: int, request: Request):
+    binding = get_binding(pr)
+    if not binding:
+        raise HTTPException(404, "该 PR 未注册验证")
+    rec = BINDS.get(str(pr))
+    if not rec or rec["exp"] < time.time():
+        raise HTTPException(400, "绑定码不存在或已过期，请重新获取")
+    author = (binding.get("author") or "").lower()
+    if DEV_MODE:
+        login = author or "dev-user"
+    else:
+        comments = gh_api("GET", f"/repos/{binding['repo']}/issues/{pr}/comments?per_page=100")
+        if comments.get("__error__"):
+            raise HTTPException(502, f"读取 PR 评论失败: {comments.get('message')}")
+        login = ""
+        for c in comments if isinstance(comments, list) else []:
+            if rec["code"] in (c.get("body") or ""):
+                login = ((c.get("user") or {}).get("login") or "").lower()
+                break
+        if not login:
+            raise HTTPException(400, "未在 PR 评论中找到绑定码（用提交 PR 的账号评论后重试）")
+        if login != author:
+            raise HTTPException(403, f"评论者 @{login} 不是 PR 作者 @{binding.get('author')}，拒绝绑定")
+    BINDS.pop(str(pr), None)
+    resp = JSONResponse({"ok": True, "login": login})
+    resp.set_cookie("mq_session", make_session(login), httponly=True, samesite="lax",
+                    max_age=7 * 86400, secure=BASE_URL.startswith("https"))
+    return resp
+
+
+# ---- Key 与运行 ------------------------------------------------------------
+
 @app.post("/api/prs/{pr}/key")
 async def api_submit_key(pr: int, request: Request):
     user = current_user(request)
     if not user:
-        raise HTTPException(401, "请先登录")
-    with _store_lock:
-        store = load_store()
-    binding = store["prs"].get(str(pr))
+        raise HTTPException(401, "请先绑定身份（评论绑定码）")
+    binding = get_binding(pr)
     if not binding:
-        raise HTTPException(404, "该 PR 未注册验证（请等待 register-verify 工作流运行）")
+        raise HTTPException(404, "该 PR 未注册验证")
     if (binding.get("author") or "").lower() != user.lower() and not ALLOW_ANY_AUTHOR:
         raise HTTPException(403, f"仅 PR 作者 ({binding.get('author')}) 可提交 Key")
     info = pr_info(binding["repo"], pr)
@@ -321,22 +353,21 @@ async def api_submit_key(pr: int, request: Request):
     body = await request.json()
     key = (body.get("key") or "").strip()
     base = (body.get("base_url") or "").strip().rstrip("/")
-    if not key.startswith("sk-") and len(key) < 16:
+    if not key.startswith("sk-") or len(key) < 16:
         raise HTTPException(400, "Key 格式可疑（应以 sk- 开头且长度足够）")
     if base and not base.startswith("https://") and "127.0.0.1" not in base:
         raise HTTPException(400, "覆盖端点必须 https")
     KEYS[str(pr)] = {"key": key, "base": base or None, "exp": int(time.time()) + KEY_TTL}
-    return {"ok": True, "expires_in": KEY_TTL, "hint": "Key 仅存内存，触发测试后即消费；过期自动焚毁"}
+    return {"ok": True, "expires_in": KEY_TTL,
+            "hint": "Key 仅存内存，触发测试后即消费；过期自动焚毁"}
 
 
 @app.post("/api/prs/{pr}/run")
 def api_run(pr: int, request: Request):
     user = current_user(request)
     if not user:
-        raise HTTPException(401, "请先登录")
-    with _store_lock:
-        store = load_store()
-    binding = store["prs"].get(str(pr))
+        raise HTTPException(401, "请先绑定身份（评论绑定码）")
+    binding = get_binding(pr)
     if not binding:
         raise HTTPException(404, "该 PR 未注册验证")
     if (binding.get("author") or "").lower() != user.lower() and not ALLOW_ANY_AUTHOR:
@@ -363,28 +394,26 @@ def api_run(pr: int, request: Request):
         verdict = doc.get("verdict", {}).get("label", "inconclusive")
         engine_v = doc.get("engine", "?")
         report_url = f"{BASE_URL}/reports/{pr}/{ts}.md"
-        base_mismatch = bool(tested_base != (binding.get("api_base") or ""))
 
-        result = {
-            "status": "completed", "verdict": verdict, "engine": engine_v,
-            "tested_base": tested_base, "base_mismatch": base_mismatch,
-            "finished_at": int(time.time()), "report_url": report_url,
-        }
+        result = {"status": "completed", "verdict": verdict, "engine": engine_v,
+                  "tested_base": tested_base,
+                  "finished_at": int(time.time()), "report_url": report_url}
         with _store_lock:
             store = load_store()
             store["prs"][str(pr)]["last_result"] = result
             store["prs"][str(pr)]["last_run_at"] = int(time.time())
+            binding = store["prs"][str(pr)]
             save_store(store)
+        pub = public_result(binding)
 
-        comment = post_pr_comment(binding["repo"], pr, md + (
-            f"\n\n---\n- 实测端点: `{tested_base}`" +
-            ("\n- ⚠️ 实测端点与 PR 声明的 api_base 不一致，请先更新 PR" if base_mismatch else "") +
-            f"\n- 引擎: `{engine_v}` · 报告: {report_url}"))
-        commit = commit_verification_to_pr(
-            binding["repo"], pr, binding.get("provider_file") or f"{binding.get('provider_id')}.json",
-            verdict, engine_v, report_url)
-        return {"ok": True, **public_result({**binding, "last_result": result}),
-                "github": {"comment": comment, "commit": commit}}
+        comment = post_pr_comment(
+            binding["repo"], pr,
+            md + (f"\n\n---\n- 实测端点: `{tested_base}`"
+                  + ("\n- ⚠️ 实测端点与 PR 声明的 api_base 不一致，请先更新 PR" if pub["base_mismatch"] else "")
+                  + f"\n- 引擎: `{engine_v}` · 报告: {report_url}"
+                  + ("\n- ✅ 验证通过：请在 PR 下评论 `/mq-done` 触发自动合并"
+                     if pub["verified"] else "\n- ❌ 未通过：可修复后在 Hub 重新提交 Key 复测")))
+        return {"ok": True, **pub, "github": {"comment": comment}}
     finally:
         lk.release()
 
@@ -398,23 +427,28 @@ def get_report(pr: int, name: str):
     return FileResponse(p, media_type="text/markdown" if safe.endswith(".md") else "application/json")
 
 
+# ---- OAuth（可选升级，配置了才显示） ---------------------------------------
+
 @app.get("/auth/github/callback")
 def oauth_callback(request: Request, code: str = "", state: str = ""):
     if not GITHUB_CLIENT_ID:
-        return HTMLResponse("<h3>OAuth 未配置</h3><p>请先在服务器配置 GITHUB_CLIENT_ID/SECRET</p>", 503)
-    req = urllib.request.Request("https://github.com/login/oauth/access_token", data=urllib.parse.urlencode({
-        "client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET,
-        "code": code, "redirect_uri": f"{BASE_URL}/auth/github/callback",
-    }).encode(), headers={"accept": "application/json"}, method="POST")
+        return HTMLResponse("<h3>OAuth 未配置</h3>", 503)
+    req = urllib.request.Request(
+        "https://github.com/login/oauth/access_token",
+        data=urllib.parse.urlencode({
+            "client_id": GITHUB_CLIENT_ID, "client_secret": GITHUB_CLIENT_SECRET,
+            "code": code, "redirect_uri": f"{BASE_URL}/auth/github/callback"}).encode(),
+        headers={"accept": "application/json"}, method="POST")
     try:
         with urllib.request.urlopen(req, timeout=20) as resp:
             tok = json.loads(resp.read()).get("access_token", "")
     except Exception as e:  # noqa: BLE001
         return HTMLResponse(f"<h3>OAuth 失败</h3><pre>{type(e).__name__}: {e}</pre>", 502)
     if not tok:
-        return HTMLResponse("<h3>OAuth 失败</h3><p>code 无效或已过期</p>", 401)
+        return HTMLResponse("<h3>OAuth 失败</h3>", 401)
     req2 = urllib.request.Request("https://api.github.com/user",
-                                  headers={"user-agent": "mq-hub/0.1", "authorization": f"Bearer {tok}"})
+                                  headers={"user-agent": "mq-hub/0.2",
+                                           "authorization": f"Bearer {tok}"})
     with urllib.request.urlopen(req2, timeout=20) as resp:
         login = json.loads(resp.read()).get("login", "")
     resp = HTMLResponse("<meta http-equiv='refresh' content='0;/'>登录成功，正在返回…")
@@ -427,11 +461,10 @@ def oauth_callback(request: Request, code: str = "", state: str = ""):
 def login_github():
     if not GITHUB_CLIENT_ID:
         return HTMLResponse("<h3>OAuth 未配置</h3>", 503)
-    url = ("https://github.com/login/oauth/authorize?client_id=" + GITHUB_CLIENT_ID +
-           "&redirect_uri=" + urllib.parse.quote(f"{BASE_URL}/auth/github/callback") +
-           "&scope=read%3Auser")
-    from fastapi.responses import RedirectResponse
-    return RedirectResponse(url)
+    return RedirectResponse(
+        "https://github.com/login/oauth/authorize?client_id=" + GITHUB_CLIENT_ID +
+        "&redirect_uri=" + urllib.parse.quote(f"{BASE_URL}/auth/github/callback") +
+        "&scope=read%3Auser")
 
 
 # ---------------------------------------------------------------- page -----
@@ -452,56 +485,75 @@ button{background:#21262d;color:var(--fg);border:1px solid var(--bd);border-radi
 button:hover{border-color:var(--acc)}button.primary{background:#1f6feb;border-color:#1f6feb}
 input{width:100%;background:#0d1117;color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:.95em;margin:4px 0 12px}
 code{background:#21262d;padding:1px 6px;border-radius:4px;font-size:.88em}
-pre{background:#010409;border:1px solid var(--bd);border-radius:8px;padding:14px;overflow:auto;font-size:.85em}
+.code-box{font-size:1.25em;font-weight:700;color:var(--ok);background:#010409;border:1px dashed var(--ok);border-radius:8px;padding:10px 14px;margin:10px 0;user-select:all}
 </style></head><body><div class="wrap">
 <h1>🔬 MQ Hub <span class="muted">— 中转站官方验证入口</span></h1>
-<p class="muted">临时 Key 仅存内存：一次性消费 · {ttl} 分钟过期 · 绝不落盘 · 报告自动回贴 PR · 通过后自动合并。<br>
+<p class="muted">临时 Key 仅存内存：一次性消费 · TTL_EXPIRE 分钟过期 · 绝不落盘 · 报告自动回贴 PR · 评论 /mq-done 自动合并。<br>
 收录 ≠ 推荐，验证通过 ≠ 安全。请提交<b>低额度、短有效期</b>的专用 Key，测试完成后立即吊销。</p>
 <div id="status" class="card">加载中…</div>
 <div id="main"></div>
-<div class="card muted"><b>流程</b>：PR 提交 providers/*.json → Action 自动注册本站 → PR 作者 GitHub 登录本站 →
-提交临时 Key → 点击「运行验证」→ 报告回贴 PR & 更新 verification → 检查通过后自动合并。<br>
+<div class="card muted"><b>流程</b>：PR 提交 providers/*.json → Action 自动注册本站 → 提交者在本站获取绑定码并到 PR 评论（GitHub 即身份证明）→
+提交临时 Key → 运行验证 → 报告回贴 PR → 在 PR 评论 <code>/mq-done</code> 自动合并。<br>
 <b>注意</b>：实测端点必须与 PR 声明的 <code>api_base</code> 一致，不一致会被拦截。</div>
 </div>
 <script>
-const q = new URLSearchParams(location.search);
 async function j(url, opts) { const r = await fetch(url, opts); const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.detail || r.status); return d; }
 async function boot() {
+  const st = document.getElementById('status');
   let me = null;
   try { me = await j('/api/me'); } catch (e) {}
-  const st = document.getElementById('status');
-  if (!me) {
-    st.innerHTML = '<b>第一步：GitHub 登录</b>（必须是 PR 作者本人）<br><br><a href="/login/github"><button class="primary">🔐 使用 GitHub 登录</button></a>';
-    return;
-  }
-  st.innerHTML = '<b>已登录：</b><code>' + me.login + '</code> · <span class="muted">仅显示与你相关的待验证 PR</span>';
+  const who = me ? '已绑定身份：<code>' + me.login + '</code>' : '未绑定身份（在每个 PR 面板里用「绑定码」完成身份验证）';
+  st.innerHTML = '<b>状态</b> · ' + who;
   const main = document.getElementById('main');
-  if (!me.prs.length) {
-    main.innerHTML = '<div class="card muted">当前没有绑定到你（' + me.login + '）的待验证 PR。<br>
-提交 PR 修改 <code>providers/*.json</code> 后，register-verify 工作流会自动注册到这里。</div>';
-    return;
-  }
+  const d = await j('/api/prs');
+  if (!d.prs.length) { main.innerHTML = '<div class="card muted">暂无已注册的待验证 PR。提交 PR 修改 <code>providers/*.json</code> 后会自动出现在这里。</div>'; return; }
   main.innerHTML = '';
-  for (const b of me.prs) {
-    const d = document.createElement('div'); d.className = 'card';
-    const res = b.result || {}; const verified = res.verified;
-    const badge = verified ? '<span class="tag ok">✅ 已通过</span>'
-      : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
-    d.innerHTML = `
-      <b>#${b.pr} ${b.provider_id||''}</b> ${badge}<br>
-      <span class="muted">端点 <code>${b.api_base||'—（PR 未填写 api_base）'}</code> · 模型 <code>${b.model}</code></span>
-      ${res.report_url ? '<br><span class="muted">报告：' + res.report_url + '</span>' : ''}
-      <hr style="border-color:var(--bd)">
-      ${!verified ? `
-      <label>临时 API Key（一次性，${Math.round(b.key_ttl/60)} 分钟有效）</label>
-      <input id="k-${b.pr}" placeholder="sk-..." autocomplete="off">
-      <label class="muted">覆盖端点（可选；留空 = 使用 PR 声明的 api_base；不一致会被拦截）</label>
-      <input id="u-${b.pr}" placeholder="https://api.example.com（可选）">
-      <button onclick="submitKey(${b.pr})">① 提交 Key</button>
-      <button class="primary" onclick="runTest(${b.pr})">② 运行验证</button>` : '<span class="muted">已完成验证，PR 将在全部检查通过后自动合并。</span>'}
-      <div id="m-${b.pr}" class="muted" style="margin-top:10px"></div>`;
-    main.appendChild(d);
+  for (const b of d.prs) {
+    const res = b.result || {};
+    const mine = me && me.login && b.author && me.login.toLowerCase() === b.author.toLowerCase();
+    const div = document.createElement('div'); div.className = 'card';
+    const badge = res.verified ? '<span class="tag ok">✅ 已通过</span>'
+      : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + (res.base_mismatch?' + 端点不一致':'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
+    let inner = `<b>#${b.pr} ${b.provider_id||''}</b> ${badge}` +
+      (mine ? ' <span class="tag">我是作者</span>' : '') +
+      `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code>` +
+      (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
+    if (mine && !res.verified) {
+      inner += `<hr style="border-color:var(--bd)">
+      <div id="bind-${b.pr}"><button onclick="bindStart(${b.pr})">① 获取绑定码（身份验证）</button></div>
+      <div id="key-${b.pr}" style="display:none">
+        <label>临时 API Key（一次性，触发即焚）</label>
+        <input id="k-${b.pr}" placeholder="sk-..." autocomplete="off">
+        <label class="muted">覆盖端点（可选；留空 = PR 声明的 api_base；不一致会被拦截）</label>
+        <input id="u-${b.pr}" placeholder="https://api.example.com（可选）">
+        <button onclick="submitKey(${b.pr})">② 提交 Key</button>
+        <button class="primary" onclick="runTest(${b.pr})">③ 运行验证</button>
+      </div>`;
+    } else if (mine && res.verified) {
+      inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;
+    }
+    inner += `<div id="m-${b.pr}" class="muted" style="margin-top:10px"></div>`;
+    div.innerHTML = inner;
+    main.appendChild(div);
   }
+  window.bindStart = async (pr) => {
+    const m = document.getElementById('m-'+pr); m.textContent = '生成绑定码…';
+    try {
+      const r = await j(`/api/prs/${pr}/bind/start`, {method:'POST'});
+      if (r.already_bound) { document.getElementById('bind-'+pr).style.display='none'; document.getElementById('key-'+pr).style.display='block'; m.textContent='✅ 身份已绑定'; return; }
+      document.getElementById('bind-'+pr).innerHTML =
+        `<div class="code-box">${r.code}</div><span class="muted">用提交 PR 的 GitHub 账号，到 PR #${pr} 下评论上面这串绑定码，然后回来点击确认：</span><br><button class="primary" onclick="bindConfirm(${pr})">我已评论，确认绑定</button>`;
+    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
+  };
+  window.bindConfirm = async (pr) => {
+    const m = document.getElementById('m-'+pr); m.textContent = '校验评论中…';
+    try {
+      await j(`/api/prs/${pr}/bind/confirm`, {method:'POST'});
+      document.getElementById('bind-'+pr).style.display='none';
+      document.getElementById('key-'+pr).style.display='block';
+      m.innerHTML = '<span class="ok">✅ 身份已绑定（7 天有效）</span>';
+    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
+  };
   window.submitKey = async (pr) => {
     const m = document.getElementById('m-'+pr); m.textContent = '提交中…';
     try {
@@ -515,8 +567,10 @@ async function boot() {
     const m = document.getElementById('m-'+pr); m.textContent = '⏳ 引擎运行中（约 1-3 分钟），请勿关闭页面…';
     try {
       const r = await j(`/api/prs/${pr}/run`, {method:'POST'});
-      m.innerHTML = `<span class="${r.verified?'ok':'err'}">${r.verified?'✅ 验证通过，报告已回贴 PR':'验证完成：'+(r.verdict||'')} — <a href="${r.report_url}">查看报告</a></span>`;
-      setTimeout(boot, 1500);
+      m.innerHTML = r.verified
+        ? '<span class="ok">✅ 验证通过，报告已回贴 PR — 去 PR 评论 <b>/mq-done</b> 自动合并</span>'
+        : `<span class="err">验证完成：${r.verdict||''}${r.base_mismatch?'（端点不一致）':''} — <a href="${r.report_url}">报告</a></span>`;
+      setTimeout(boot, 2000);
     } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
   };
 }
@@ -526,23 +580,12 @@ boot();
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return PAGE.replace("{ttl}", str(KEY_TTL // 60))
+    return PAGE.replace("TTL_EXPIRE", str(KEY_TTL // 60))
 
 
 @app.get("/api/me")
 def api_me(request: Request):
     user = current_user(request)
     if not user:
-        raise HTTPException(401, "not logged in")
-    with _store_lock:
-        store = load_store()
-    prs = []
-    for b in store["prs"].values():
-        if (b.get("author") or "").lower() != user.lower() and not DEV_MODE:
-            continue
-        prs.append({
-            "pr": b["pr"], "provider_id": b.get("provider_id"), "api_base": b.get("api_base"),
-            "model": b.get("model"), "result": public_result(b),
-            "key_ttl": KEY_TTL,
-        })
-    return {"login": user, "prs": prs}
+        raise HTTPException(401, "not bound")
+    return {"login": user}
