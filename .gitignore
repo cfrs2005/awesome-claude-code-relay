@@ -4,3 +4,4 @@ __pycache__/
 .mq-report.md
 *.key
 .DS_Store
+docs-private/

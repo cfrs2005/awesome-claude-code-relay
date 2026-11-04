@@ -23,7 +23,9 @@
 | `.github/workflows/providers-check.yml` | PR 校验 + Watch 检查 + Hub 门禁 + 自动合并 |
 | `.github/workflows/register-verify.yml` | PR 变更注册到 Hub + 发布验证指引 |
 | `.github/workflows/claudecode.yml` | GLM 驱动的 Claude Code（@claude 交互 + PR 自动分诊） |
-| `docs/verification-design.md` | Hub 架构、威胁模型、部署说明 |
+| `docs/verification-design.md` | Hub 架构、威胁模型（公开透明文档） |
+
+> 运维细节（服务器、密钥清单、操作手册）在**本地私有目录** `docs-private/`（已 gitignore，绝不入库）。
 
 ## PR 规则（AI 助手必须遵守的执行边界）
 

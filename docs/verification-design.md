@@ -58,15 +58,12 @@ GET  /reports/{n}/{ts}.md        公开          # 验证报告
 GET  /healthz                    公开          # 健康检查
 ```
 
-## 部署（ntt197）
+## 部署
 
-- 代码：`/opt/mq-hub/app.py`、`/opt/mq-hub/engine/mq.py`、`/opt/mq-hub/venv`
-- 配置：`/opt/mq-hub/env`（0600；HUB_TOKEN / SESSION_SECRET / GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET / GITHUB_TOKEN / BASE_URL）
-- 进程：systemd `mq-hub.service`（uvicorn 127.0.0.1:8710）
-- 入口：Caddy `mq.80aj.com` → 127.0.0.1:8710（自动 HTTPS）
-- 数据：`/opt/mq-hub/data/`（prs.json 绑定关系 + reports/ 历史报告，均不含 Key）
-
-引擎升级流程：本仓库 main 更新 `mq/mq.py` → 服务器 `rsync` 同步 → `systemctl restart mq-hub`。
+- Hub 自托管于独立服务器，公网入口 `https://mq.80aj.com`（Caddy 自动 HTTPS）
+- 引擎以 main 分支部署副本运行，绝不执行 PR head 代码；升级 = 同步 `mq/mq.py` + 重启
+- 数据目录仅存 PR 绑定关系与历史报告，**永不包含 Key**
+- 服务器地址、密钥清单、运维手册等敏感细节保存在**不入库的本地目录** `docs-private/`（见 .gitignore），不进公开仓库
 
 ## 威胁模型：诚实边界
 
