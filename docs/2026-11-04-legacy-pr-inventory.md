@@ -7,12 +7,12 @@
 | #3 | 修复表单 Header 与 API URL | MERGED | 历史维护 PR，不作为服务商验证记录 |
 | #4 | 修复 Star History 项目地址 | MERGED | 历史维护 PR，不作为服务商验证记录 |
 | #5 | AIFast HK 入口 | CLOSED | 已由 #13 替代；如继续收录，重新提交 provider JSON |
-| #6 | CoderPlan | OPEN | 旧 README-only PR；按新 schema 重新提交后再验证 |
-| #13 | AI快站 AIFast | OPEN | 旧 README-only PR；按新 schema 重新提交后再验证 |
+| #6 | CoderPlan | MERGED | 已迁移为 `providers/coderplan.json`；保持 `unverified`，待补端点后验证 |
+| #13 | AI快站 AIFast | MERGED | 已迁移为 `providers/aifast.json`；保持 `unverified`，待补端点后验证 |
 | #15 | Twinkle Model | CLOSED | 旧 README-only PR；历史资料只能作为未验证来源 |
 | #16 | TeapotRouter | CLOSED | 旧 README-only PR；历史资料只能作为未验证来源 |
-| #17 | TeamoRouter | OPEN | 旧 README-only PR；按新 schema 重新提交后再验证 |
-| #21 | Code By AI | OPEN | 旧 README-only PR；按新 schema 重新提交后再验证 |
+| #17 | TeamoRouter | MERGED | 已迁移为 `providers/teamorouter.json`；保持 `unverified`，待补端点后验证 |
+| #21 | Code By AI | MERGED | 已迁移为 `providers/codebyai.json`；保持 `unverified`，待补端点后验证 |
 | #22 | MQ 链路冒烟测试 | CLOSED | 测试 PR，不作为服务商条目 |
 | #23 | 86GameStore | MERGED | 新规则切换期的首个验证样例；使用 `/pr/23` 作为专属工作台地址 |
 
