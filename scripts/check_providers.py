@@ -19,6 +19,7 @@ Providers PR 确定性校验（自动合并的唯一依据，LLM 结论仅供参
 import argparse
 import ipaddress
 import json
+import os
 import pathlib
 import re
 import subprocess
