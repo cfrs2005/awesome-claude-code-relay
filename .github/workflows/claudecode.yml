@@ -39,11 +39,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+      - name: Check GLM key
+        id: keycheck
+        run: echo "has=$( [ -n "${{ secrets.GLM_API_KEY }}" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
       - name: Setup Node.js
+        if: steps.keycheck.outputs.has == '1'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Run Claude Code (GLM)
+        if: steps.keycheck.outputs.has == '1'
         uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
@@ -61,11 +66,16 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Check GLM key
+        id: keycheck
+        run: echo "has=$( [ -n "${{ secrets.GLM_API_KEY }}" ] && echo 1 || echo 0)" >> "$GITHUB_OUTPUT"
       - name: Setup Node.js
+        if: steps.keycheck.outputs.has == '1'
         uses: actions/setup-node@v4
         with:
           node-version: "20"
       - name: Triage PR with Claude Code (GLM)
+        if: steps.keycheck.outputs.has == '1'
         uses: anthropics/claude-code-action@v1
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}

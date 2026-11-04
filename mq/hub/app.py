@@ -313,8 +313,10 @@ def api_bind_confirm(pr: int, request: Request):
     if DEV_MODE:
         login = author or "dev-user"
     else:
-        comments = gh_api("GET", f"/repos/{binding['repo']}/issues/{pr}/comments?per_page=100")
-        if comments.get("__error__"):
+        comments = gh_api("GET",
+                          f"/repos/{binding['repo']}/issues/{pr}/comments"
+                          "?per_page=100&sort=created&direction=desc")
+        if isinstance(comments, dict) and comments.get("__error__"):
             raise HTTPException(502, f"读取 PR 评论失败: {comments.get('message')}")
         login = ""
         for c in comments if isinstance(comments, list) else []:

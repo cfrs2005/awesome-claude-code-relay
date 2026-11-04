@@ -34,11 +34,11 @@ def main():
         return 0
     reasons = []
     if r.get("status") != "completed":
-        reasons.append("尚未完成验证：请 PR 作者到 Hub 登录并提交临时 Key、运行验证")
+        reasons.append("尚未完成验证：请 PR 作者到 Hub（绑定码验证身份）提交临时 Key 并运行验证")
     else:
         reasons.append(f"验证结论: {VERDICT_ZH.get(r.get('verdict'), r.get('verdict'))}")
         if r.get("base_mismatch"):
-            reasons.append(f"实测端点 {r.get('tested_base')} 与 PR 声明的 api_base 不一致，请先更新 PR")
+            reasons.append(f"实测端点 {r.get('tested_base')} 与 PR 当前声明的 api_base 不一致，请先更新 PR")
     print("Hub: ❌ " + "；".join(reasons))
     print("提示: 维护者可打 mq-manual 标签转人工审查（放弃自动合并）")
     return 1
