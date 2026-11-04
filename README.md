@@ -1,6 +1,6 @@
 # awesome-claude-code-relay
 
-[![Providers](https://img.shields.io/badge/服务商-29-blue)](#-服务商目录)
+[![Providers](https://img.shields.io/badge/服务商-30-blue)](#-服务商目录)
 [![MQ 引擎](https://img.shields.io/badge/MQ%20引擎-v0.1.0-purple)](mq/)
 [![无 AFF](https://img.shields.io/badge/定位-无AFF中立目录-green)](#️-原则)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
