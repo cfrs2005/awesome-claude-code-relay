@@ -1,0 +1,25 @@
+{
+  "id": "linux-do-hub",
+  "name": "LINUX DO Hub",
+  "type": "community",
+  "family": "openai",
+  "website": "https://linux.do",
+  "api_base": "https://hub.linux.do",
+  "models_claimed": [
+    "gpt-6-sol",
+    "gpt-6.1-sol",
+    "gpt-6-astra",
+    "gpt-5.6-terra",
+    "gpt-5.6-sol"
+  ],
+  "payment": [],
+  "price_note": "",
+  "notes": "OpenAI / Codex 通道，非 Claude。与 hub.oaifree.com 为同一服务的不同域名，实测模型目录一致。可用于 Claude Code 的 ANTHROPIC_BASE_URL，但返回的是 OpenAI 体系实现（响应 id 为 resp_ 前缀、tool id 为 call_ 前缀）",
+  "added_at": "2026-11-05",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
