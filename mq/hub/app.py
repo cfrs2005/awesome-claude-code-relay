@@ -439,9 +439,13 @@ def api_run(pr: int, request: Request):
 def get_report(pr: int, name: str):
     safe = Path(name).name
     p = REPORTS_DIR / str(pr) / safe
+    if not p.is_file() and safe.endswith(".md"):
+        p = REPORTS_DIR / str(pr) / safe[:-3] / "report.md"
+    if not p.is_file() and safe.endswith(".json"):
+        p = REPORTS_DIR / str(pr) / safe[:-5] / "report.json"
     if not p.is_file():
         raise HTTPException(404, "report not found")
-    return FileResponse(p, media_type="text/markdown" if safe.endswith(".md") else "application/json")
+    return FileResponse(p, media_type="text/markdown" if p.name.endswith(".md") else "application/json")
 
 
 @app.get("/pr/{pr}", response_class=HTMLResponse)

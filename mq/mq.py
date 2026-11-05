@@ -195,16 +195,22 @@ def probe_models(client, model, rep):
     if not r.get("ok"):
         rep.add("models", "GET /v1/models", INFO,
                 f"端点不可用（HTTP {r.get('status')}），不影响 Messages API 评估")
-        return
+        return model
     ids = []
     body = r.get("body") or {}
     data = body.get("data") if isinstance(body, dict) else None
     if isinstance(data, list):
         ids = [str(m.get("id")) for m in data if isinstance(m, dict) and m.get("id")]
     has = model in ids if ids else None
-    rep.add("models", "GET /v1/models", PASS if has or ids is None else WARN,
-            f"返回 {len(ids)} 个模型" + (f"，包含 {model}" if has else f"，未声明 {model}"),
+    selected = model
+    status = PASS if has or ids is None else WARN
+    detail = f"返回 {len(ids)} 个模型" + (f"，包含 {model}" if has else f"，未声明 {model}")
+    if ids and not has:
+        selected = DEFAULT_MODEL if DEFAULT_MODEL in ids else ids[0]
+        detail += f"；本轮改用可用模型 {selected} 继续测试"
+    rep.add("models", "GET /v1/models", status, detail,
             metrics={"count": len(ids)}, evidence=[", ".join(ids[:30])])
+    return selected
 
 
 def _basic_payload(model, user_text, max_tokens=64, system=None):
@@ -495,6 +501,9 @@ def verdict(rep):
     oc = rep.get("official_compare")
     if oc and oc["status"] == FAIL:
         return "identity_suspect", "与官方 tokenizer 计数不一致"
+    models = rep.get("models")
+    if models and models["status"] == WARN:
+        return "identity_suspect", "PR 声明模型未出现在 /v1/models，本轮使用可用模型完成协议测试"
     idn = rep.get("identity")
     if idn and idn["status"] == WARN:
         return "identity_suspect", "身份旁证出现异常信号（启发式，供人工复核）"
@@ -506,7 +515,10 @@ def build_markdown(rep, meta, vlabel, vdetail):
     lines = []
     lines.append(f"# MQ 验证报告 — {meta['host']}")
     lines.append("")
-    lines.append(f"- 引擎版本: `{MQ_VERSION}`　模型: `{meta['model']}`　时间: {meta['ts']}")
+    model_note = f"`{meta['model']}`"
+    if meta.get("requested_model") and meta["requested_model"] != meta["model"]:
+        model_note += f"（请求 `{meta['requested_model']}`，因端点未声明而使用可用模型）"
+    lines.append(f"- 引擎版本: `{MQ_VERSION}`　模型: {model_note}　时间: {meta['ts']}")
     lines.append(f"- **结论: {VERDICT_LABEL.get(vlabel, vlabel)}** —— {vdetail}")
     lines.append("- ⚠️ 收录 ≠ 推荐，验证通过 ≠ 安全。本报告不能证明服务商不留存/不转卖请求数据。")
     lines.append("")
@@ -601,21 +613,22 @@ def main():
                                timeout=args.timeout, allow_http=args.allow_http)
 
     rep = Report()
-    probe_models(client, args.model, rep)
-    probe_basic(client, args.model, rep)
-    probe_consistency(rep, client, args.model, rounds=args.rounds, official_client=official)
-    probe_stream(client, args.model, rep)
-    probe_system(client, args.model, rep)
-    probe_tools(client, args.model, rep)
-    probe_thinking(client, args.model, rep)
-    probe_identity(client, args.model, rep)
-    probe_stability(client, args.model, rep, n=max(6, args.rounds * 2))
+    selected_model = probe_models(client, args.model, rep) or args.model
+    probe_basic(client, selected_model, rep)
+    probe_consistency(rep, client, selected_model, rounds=args.rounds, official_client=official)
+    probe_stream(client, selected_model, rep)
+    probe_system(client, selected_model, rep)
+    probe_tools(client, selected_model, rep)
+    probe_thinking(client, selected_model, rep)
+    probe_identity(client, selected_model, rep)
+    probe_stability(client, selected_model, rep, n=max(6, args.rounds * 2))
 
     vlabel, vdetail = verdict(rep)
     meta = {
         "base_url": args.base_url,
         "host": urllib.parse.urlparse(args.base_url).netloc,
-        "model": args.model,
+        "model": selected_model,
+        "requested_model": args.model,
         "ts": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
     }
     doc = {
