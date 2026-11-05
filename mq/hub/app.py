@@ -318,6 +318,10 @@ def api_get_pr(pr: int, request: Request):
 
 @app.post("/api/prs/{pr}/bind/start")
 def api_bind_start(pr: int, request: Request):
+    raise HTTPException(
+        410,
+        "服务端接收 Key 的流程已下线。MQ 引擎现在在提交者本机运行，"
+        "报告贴进 PR 即可。见 https://github.com/cfrs2005/awesome-claude-code-relay")
     user = current_user(request)
     binding = get_binding(pr)
     if not binding:
@@ -332,6 +336,10 @@ def api_bind_start(pr: int, request: Request):
 
 @app.post("/api/prs/{pr}/bind/confirm")
 def api_bind_confirm(pr: int, request: Request):
+    raise HTTPException(
+        410,
+        "服务端接收 Key 的流程已下线。MQ 引擎现在在提交者本机运行，"
+        "报告贴进 PR 即可。见 https://github.com/cfrs2005/awesome-claude-code-relay")
     binding = get_binding(pr)
     if not binding:
         raise HTTPException(404, "该 PR 未注册验证")
@@ -367,6 +375,10 @@ def api_bind_confirm(pr: int, request: Request):
 
 @app.post("/api/prs/{pr}/key")
 async def api_submit_key(pr: int, request: Request):
+    raise HTTPException(
+        410,
+        "服务端接收 Key 的流程已下线。MQ 引擎现在在提交者本机运行，"
+        "报告贴进 PR 即可。见 https://github.com/cfrs2005/awesome-claude-code-relay")
     user = current_user(request)
     if not user:
         raise HTTPException(401, "请先绑定身份（评论绑定码）")
@@ -395,6 +407,10 @@ async def api_submit_key(pr: int, request: Request):
 
 @app.post("/api/prs/{pr}/run")
 def api_run(pr: int, request: Request):
+    raise HTTPException(
+        410,
+        "服务端接收 Key 的流程已下线。MQ 引擎现在在提交者本机运行，"
+        "报告贴进 PR 即可。见 https://github.com/cfrs2005/awesome-claude-code-relay")
     user = current_user(request)
     if not user:
         raise HTTPException(401, "请先绑定身份（评论绑定码）")
@@ -458,12 +474,11 @@ def api_run(pr: int, request: Request):
         lk.release()
 
 
-def _render_report_html(report_json: Path) -> str:
-    """用 scripts/render_report.py 把 report.json 渲成 HTML 页。"""
+def _load_renderer():
+    """加载 scripts/render_report.py（部署形态与仓库形态都能找到）。"""
     import importlib.util
     script = Path(RENDER_SCRIPT)
     if not script.is_file():
-        # 仓库形态兜底：mq/hub/app.py -> ../../scripts/render_report.py
         alt = Path(__file__).resolve().parent.parent.parent / "scripts" / "render_report.py"
         script = alt if alt.is_file() else script
     if not script.is_file():
@@ -471,6 +486,58 @@ def _render_report_html(report_json: Path) -> str:
     spec = importlib.util.spec_from_file_location("render_report", script)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    return mod
+
+
+_INDEX_CACHE = {"key": None, "value": None}
+
+
+def scan_reports():
+    """扫描 REPORTS_DIR/{pr}/{ts}/report.json，返回报告索引条目（新→旧）。"""
+    entries = []
+    if not REPORTS_DIR.is_dir():
+        return entries
+    files = sorted(REPORTS_DIR.glob("*/[0-9]*/report.json"),
+                   key=lambda f: f.parent.name, reverse=True)
+    for jp in files[:200]:
+        try:
+            doc = json.loads(jp.read_text(encoding="utf-8"))
+        except Exception:  # noqa: BLE001
+            continue
+        meta = doc.get("meta") or {}
+        checks = doc.get("checks") or []
+        verdict = (doc.get("verdict") or {}).get("label") or "inconclusive"
+        pr = jp.parent.parent.name
+        ts = jp.parent.name
+        # 旧报告（引擎 0.1.0）没有 expect_family，用目录里占比最大的家族代替，
+        # 否则 86GameStore 这种纯 gpt 目录会被标成 Claude。
+        fams = (doc.get("catalog") or {}).get("families") or {}
+        family = meta.get("expect_family") or (
+            max(fams, key=fams.get) if fams else "")
+        ts_h = ts.replace("T", " ").replace("Z", "")
+        entries.append({
+            "pr": pr, "ts": ts,
+            "when": f"{ts_h[:4]}-{ts_h[4:6]}-{ts_h[6:8]} {ts_h[9:11]}:{ts_h[11:13]}",
+            "host": meta.get("host") or "—",
+            "family": family,
+            "mode": meta.get("mode") or "",
+            "engine": doc.get("engine") or "?",
+            "verdict": verdict,
+            "tone": {"basic_passed": "ok", "identity_suspect": "err",
+                     "behavior_anomaly": "err", "model_not_found": "err",
+                     "protocol_incompatible": "err",
+                     "endpoint_unreachable": "warn", "auth_rejected": "warn"}
+                    .get(verdict, "info"),
+            "n_pass": sum(1 for c in checks if c.get("status") == "PASS"),
+            "total": len(checks),
+            "url": f"/r/{pr}/{ts}",
+        })
+    return entries
+
+
+def _render_report_html(report_json: Path) -> str:
+    """用 scripts/render_report.py 把 report.json 渲成 HTML 页。"""
+    mod = _load_renderer()
     return mod.build(json.loads(report_json.read_text(encoding="utf-8")))
 
 
@@ -499,8 +566,9 @@ def get_report(pr: int, name: str):
 
 @app.get("/pr/{pr}", response_class=HTMLResponse)
 def pr_workspace(pr: int):
-    """Stable per-PR entry point; the page filters itself to this PR."""
-    return PAGE.replace("TTL_EXPIRE", str(KEY_TTL // 60))
+    """单个 PR 的报告列表。没有报告时给出该 PR 的复现指引。"""
+    allx = [e for e in scan_reports() if e["pr"] == str(pr)]
+    return HTMLResponse(_load_renderer().build_index(allx, mode="single"))
 
 
 # ---- OAuth（可选升级，配置了才显示） ---------------------------------------
@@ -545,136 +613,9 @@ def login_github():
 
 # ---------------------------------------------------------------- page -----
 
-PAGE = """<!doctype html><html lang="zh"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>RelayQuality — PR 验证工作台</title>
-<style>
-:root{--bg:#f8f9ff;--fg:#0b1c30;--muted:#434655;--acc:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--card:#ffffff;--bd:#c3c6d7;--soft:#eff4ff}
-*{box-sizing:border-box}body{margin:0;font-family:Inter,-apple-system,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--fg);line-height:1.6}
-.wrap{max-width:1180px;margin:0 auto;padding:28px 24px 72px}
-h1{font-size:1.7em;letter-spacing:-.02em}a{color:var(--acc);text-decoration:none}
-.card{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:18px 20px;margin:16px 0}
-.muted{color:var(--muted);font-size:.9em}
-.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:.8em;border:1px solid var(--bd);background:var(--soft)}
-.ok{color:var(--ok)}.warn{color:var(--warn)}.err{color:var(--err)}
-button{background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:8px 16px;cursor:pointer;font-size:.95em}
-button:hover{border-color:var(--acc);color:var(--acc)}button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
-input{width:100%;background:var(--card);color:var(--fg);border:1px solid var(--bd);border-radius:6px;padding:9px 12px;font-size:.95em;margin:4px 0 12px}
-code{background:var(--soft);padding:1px 6px;border-radius:4px;font-size:.88em}
-.code-box{font-size:1.25em;font-weight:700;color:var(--ok);background:var(--soft);border:1px dashed var(--ok);border-radius:6px;padding:10px 14px;margin:10px 0;user-select:all}
-.prlink{display:inline-block;margin:8px 0 4px;font-weight:600}
-</style></head><body><div class="wrap">
-<h1>RelayQuality <span class="muted">— PR 验证工作台</span></h1>
-<p class="muted">临时 Key 仅存内存：一次性消费 · TTL_EXPIRE 分钟过期 · 绝不落盘 · 报告自动回贴 PR · 评论 /mq-done 自动合并。<br>
-收录 ≠ 推荐，验证通过 ≠ 安全。请提交<b>低额度、短有效期</b>的专用 Key，测试完成后立即吊销。</p>
-<div id="status" class="card">加载中…</div>
-<div id="main"></div>
-<div class="card muted"><b>流程</b>：PR 提交 providers/*.json → Action 自动注册本站 → 提交者在本站获取绑定码并到 PR 评论（GitHub 即身份证明）→
-提交临时 Key → 运行验证 → 报告回贴 PR → 在 PR 评论 <code>/mq-done</code> 自动合并。<br>
-<b>注意</b>：实测端点必须与 PR 声明的 <code>api_base</code> 一致，不一致会被拦截。</div>
-</div>
-<script>
-async function j(url, opts) { const r = await fetch(url, opts); const d = await r.json().catch(()=>({})); if (!r.ok) throw new Error(d.detail || r.status); return d; }
-async function boot() {
-  const st = document.getElementById('status');
-  let me = null;
-  try { me = await j('/api/me'); } catch (e) {}
-  const who = me ? '已绑定身份：<code>' + me.login + '</code>' : '未绑定身份（在每个 PR 面板里用「绑定码」完成身份验证）';
-  st.innerHTML = '<b>状态</b> · ' + who;
-  const main = document.getElementById('main');
-  const directPr = new URLSearchParams(location.search).get('pr') || (location.pathname.match(/^\\/pr\\/(\\d+)/) || [])[1];
-  const d = await j('/api/prs');
-  const prs = directPr ? d.prs.filter(x => String(x.pr) === String(directPr)) : d.prs;
-  if (!prs.length) { main.innerHTML = '<div class="card muted">未找到这个 PR 的验证记录。请确认 PR 已由 Action 注册到 MQ Hub。</div>'; return; }
-  main.innerHTML = '';
-  window.PRMAP = {};
-  for (const b of prs) {
-    window.PRMAP[b.pr] = b;
-    const res = b.result || {};
-    const mine = me && me.login && b.author && me.login.toLowerCase() === b.author.toLowerCase();
-    const prState = b.pr_state || 'unknown';
-    const stateTag = prState === 'open' ? '' : '<span class="tag">已归档</span>';
-    const div = document.createElement('div'); div.className = 'card';
-    const badge = res.verified ? '<span class="tag ok">✅ 已通过</span>'
-      : (res.status === 'completed' ? '<span class="tag err">❌ ' + (res.verdict||'') + (res.base_mismatch?' + 端点不一致':'') + '</span>' : '<span class="tag warn">⏳ 待验证</span>');
-    let inner = `<b><a href="https://github.com/${b.repo||'cfrs2005/awesome-claude-code-relay'}/pull/${b.pr}" target="_blank" rel="noopener">#${b.pr} ${b.provider_id||''} ↗</a></b> ${badge}` +
-      stateTag +
-      (mine ? ' <span class="tag">我是作者</span>' : '') +
-      `<br><span class="muted">作者 <code>${b.author||'?'}</code> · 端点 <code>${b.api_base||'—（PR 未填 api_base）'}</code> · 测试模型 <code>${b.model||'claude-haiku-4-5'}</code>` +
-      `<br><span class="muted">PR 验证地址 <code>${b.verification_url || (location.origin + '/pr/' + b.pr)}</code> · <button onclick="navigator.clipboard.writeText('${b.verification_url || ''}')">复制地址</button></span>` +
-      (res.report_url ? ` · <a href="${res.report_url}">报告</a>` : '') + `</span>`;
-    if (prState !== 'open') {
-      inner += `<hr style="border-color:var(--bd)"><span class="err">PR 当前状态 <code>${prState}</code>，验证入口已关闭。请创建新的 PR 后重新提测。</span>`;
-    } else if (res.verified) {
-      if (mine) inner += `<hr style="border-color:var(--bd)"><span class="ok">✅ 验证通过 —— 去 PR 评论 <code>/mq-done</code> 即可自动合并</span>`;
-    } else if (me && !mine) {
-      inner += `<hr style="border-color:var(--bd)"><span class="muted">此 PR 归 @${b.author||'?'}，仅作者本人可完成验证（你当前绑定身份：${me.login}）</span>`;
-    } else {
-      inner += `<hr style="border-color:var(--bd)">
-      <div id="bind-${b.pr}" style="${me ? 'display:none' : ''}"><button class="primary" onclick="bindStart(${b.pr})">① 获取绑定码（验证我是 PR 作者）</button>
-      <span class="muted">仅 PR 作者能完成绑定：用提交 PR 的 GitHub 账号在 PR 下评论绑定码</span></div>
-      <div id="key-${b.pr}" style="${me ? '' : 'display:none'}">
-        <label>临时 API Key（一次性，触发即焚）</label>
-        <input id="k-${b.pr}" placeholder="sk-..." autocomplete="off">
-        <label class="muted">覆盖端点（可选；留空 = PR 声明的 api_base；不一致会被拦截）</label>
-        <input id="u-${b.pr}" placeholder="https://api.example.com（可选）">
-        <button onclick="submitKey(${b.pr})">② 提交 Key</button>
-        <button class="primary" onclick="runTest(${b.pr})">③ 运行验证</button>
-      </div>`;
-    }
-    inner += `<div id="m-${b.pr}" class="muted" style="margin-top:10px"></div>`;
-    div.innerHTML = inner;
-    main.appendChild(div);
-  }
-  window.bindStart = async (pr) => {
-    const m = document.getElementById('m-'+pr); m.textContent = '生成绑定码…';
-    try {
-      const r = await j(`/api/prs/${pr}/bind/start`, {method:'POST'});
-      if (r.already_bound) { document.getElementById('bind-'+pr).style.display='none'; document.getElementById('key-'+pr).style.display='block'; m.textContent='✅ 身份已绑定'; return; }
-      const repo = (window.PRMAP[pr] || {}).repo || 'cfrs2005/awesome-claude-code-relay';
-      document.getElementById('bind-'+pr).innerHTML =
-        `<div class="code-box">${r.code}</div>
-        <a class="prlink" href="https://github.com/${repo}/pull/${pr}" target="_blank" rel="noopener">➡️ 点这里打开 PR #${pr} 评论区，把上面的绑定码粘贴为评论（用提交 PR 的 GitHub 账号）</a><br>
-        <button class="primary" onclick="bindConfirm(${pr})">我已评论，确认绑定</button>`;
-    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
-  };
-  window.bindConfirm = async (pr) => {
-    const m = document.getElementById('m-'+pr); m.textContent = '校验评论中…';
-    try {
-      await j(`/api/prs/${pr}/bind/confirm`, {method:'POST'});
-      document.getElementById('bind-'+pr).style.display='none';
-      document.getElementById('key-'+pr).style.display='block';
-      m.innerHTML = '<span class="ok">✅ 身份已绑定（7 天有效），可直接提交 Key</span>';
-      setTimeout(boot, 800);
-    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
-  };
-  window.submitKey = async (pr) => {
-    const m = document.getElementById('m-'+pr); m.textContent = '提交中…';
-    try {
-      const key = document.getElementById('k-'+pr).value.trim();
-      const base_url = document.getElementById('u-'+pr).value.trim();
-      const r = await j(`/api/prs/${pr}/key`, {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({key, base_url})});
-      m.innerHTML = '<span class="ok">✅ Key 已接收（内存暂存）</span> — ' + r.hint;
-    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
-  };
-  window.runTest = async (pr) => {
-    const m = document.getElementById('m-'+pr); m.textContent = '⏳ 引擎运行中（约 1-3 分钟），请勿关闭页面…';
-    try {
-      const r = await j(`/api/prs/${pr}/run`, {method:'POST'});
-      m.innerHTML = r.verified
-        ? '<span class="ok">✅ 验证通过，报告已回贴 PR — 去 PR 评论 <b>/mq-done</b> 自动合并</span>'
-        : `<span class="err">验证完成：${r.verdict||''}${r.base_mismatch?'（端点不一致）':''} — <a href="${r.report_url}">报告</a></span>`;
-      setTimeout(boot, 2000);
-    } catch (e) { m.innerHTML = '<span class="err">❌ ' + e.message + '</span>'; }
-  };
-}
-boot();
-</script></body></html>"""
-
-
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return PAGE.replace("TTL_EXPIRE", str(KEY_TTL // 60))
+    return HTMLResponse(_load_renderer().build_index(scan_reports()))
 
 
 @app.get("/api/me")
