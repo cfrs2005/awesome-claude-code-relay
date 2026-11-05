@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RelayQuality 质量评测报告 - api.relayservice-proxy.net</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans SC"', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            app: {
+              bg: '#0F1115',
+              surface: '#171A20',
+              surfaceElevated: '#1D2129',
+              border: 'rgba(255, 255, 255, 0.08)',
+              borderSubtle: 'rgba(255, 255, 255, 0.05)',
+              textPrimary: '#F1F3F5',
+              textSecondary: '#9AA2B1',
+              textMuted: '#5F6775',
+              amber: '#F59E0B',
+              green: '#10B981',
+              red: '#EF4444',
+              grey: '#6B7280',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0F1115;
+      color: #F1F3F5;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      -webkit-font-smoothing: antialiased;
+    }
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 20;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-[#0F1115] text-[#F1F3F5] font-sans antialiased flex flex-col justify-between selection:bg-[#F59E0B]/20 selection:text-[#F59E0B]">
+
+  <!-- 1. Slim Top Bar (56px) -->
+  <header class="h-[56px] w-full border-b border-[rgba(255,255,255,0.08)] bg-[#0F1115] sticky top-0 z-30 px-6">
+    <div class="max-w-[1120px] h-full mx-auto flex items-center justify-between">
+      <!-- Left Branding -->
+      <div class="flex items-center gap-3">
+        <span class="text-base font-semibold tracking-tight text-[#F1F3F5]">RelayQuality</span>
+        <span class="h-3 w-[1px] bg-[rgba(255,255,255,0.15)]"></span>
+        <span class="text-xs text-[#9AA2B1] font-normal tracking-wide">MQ 验证报告</span>
+      </div>
+
+      <!-- Right Monospace Meta -->
+      <div class="flex items-center gap-4 text-xs font-mono">
+        <div class="flex items-center gap-1.5 text-[#9AA2B1]">
+          <span class="text-[#5F6775]">HOST</span>
+          <span class="text-[#F1F3F5] bg-[#171A20] px-2 py-0.5 rounded border border-[rgba(255,255,255,0.06)]">api.relayservice-proxy.net</span>
+        </div>
+        <span class="text-[#5F6775]">·</span>
+        <div class="flex items-center gap-1.5 text-[#9AA2B1]">
+          <span class="text-[#5F6775]">TESTED</span>
+          <span class="text-[#9AA2B1]">2025-05-18 14:38:12 UTC+8</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container (Centered 1120px, 24px gutters) -->
+  <main class="w-full flex-1 py-7 px-6">
+    <div class="max-w-[1120px] mx-auto space-y-7">
+
+      <!-- 2. Hero Verdict Block (~200px tall card, full width, NO SCORE) -->
+      <section class="w-full bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] p-6">
+        <!-- Top Half: Glyph Tile + Verdict Status + Host & Conclusion -->
+        <div class="flex items-start gap-5">
+          <!-- 96px Rounded Square Tile with Large Verdict Glyph -->
+          <div class="w-[96px] h-[96px] shrink-0 rounded-[8px] border border-[#F59E0B]/30 bg-[#F59E0B]/10 flex items-center justify-center text-[#F59E0B]">
+            <span class="material-symbols-outlined !text-[44px]">priority_high</span>
+          </div>
+
+          <!-- Verdict Text Content -->
+          <div class="flex-1 min-w-0">
+            <!-- Status Pill -->
+            <div class="flex items-center gap-3">
+              <span class="inline-flex items-center px-2 py-0.5 rounded-[4px] text-xs font-medium border border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]">
+                身份存疑
+              </span>
+              <span class="text-xs font-mono text-[#5F6775]">#MQ-20250518-842</span>
+            </div>
+
+            <!-- Host Headline -->
+            <h1 class="text-2xl font-mono font-medium text-[#F1F3F5] tracking-tight mt-1.5 truncate">
+              api.relayservice-proxy.net
+            </h1>
+
+            <!-- Conclusion Text (Chinese, 1-2 lines) -->
+            <p class="text-sm text-[#9AA2B1] mt-1 leading-relaxed">
+              基础 HTTP 与 SSE 流式握手正常，但探测到返回模型特征与声明的 claude-3-7-sonnet 存在高熵离散与词元降级偏差，且扩展思考（Extended Thinking）通道偶发中途重置截断。
+            </p>
+          </div>
+        </div>
+
+        <!-- Middle: Proportional Segmented Bar + Raw Count Text (Replaces Score) -->
+        <div class="mt-6 pt-5 border-t border-[rgba(255,255,255,0.06)]">
+          <div class="flex items-center justify-between text-xs font-mono mb-2">
+            <span class="text-[#5F6775]">VERDICT DISTRIBUTION</span>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="text-[#F1F3F5]"><span class="text-[#10B981] font-semibold">通过 7</span></span>
+              <span class="text-[#5F6775]">·</span>
+              <span class="text-[#F1F3F5]"><span class="text-[#F59E0B] font-semibold">警告 0</span></span>
+              <span class="text-[#5F6775]">·</span>
+              <span class="text-[#F1F3F5]"><span class="text-[#EF4444] font-semibold">失败 4</span></span>
+              <span class="text-[#5F6775]">·</span>
+              <span class="text-[#F1F3F5]"><span class="text-[#6B7280] font-semibold">信息 3</span></span>
+            </div>
+          </div>
+
+          <!-- 4-Segmented Bar Proportional to Counts: 7 / 0 / 4 / 3 (total 14) -> 50% / 0% / 28.57% / 21.43% -->
+          <div class="h-2 w-full rounded-[4px] overflow-hidden flex bg-[#0F1115] gap-[2px]">
+            <div class="h-full bg-[#10B981]" style="width: 50%;" title="通过 7"></div>
+            <!-- 警告为 0，不占宽 -->
+            <div class="h-full bg-[#EF4444]" style="width: 28.57%;" title="失败 4"></div>
+            <div class="h-full bg-[#6B7280]" style="width: 21.43%;" title="信息 3"></div>
+          </div>
+        </div>
+
+        <!-- Bottom: Four Metadata Monospace Outlined Chips -->
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-[rgba(255,255,255,0.1)] bg-[#0F1115]/50 text-xs font-mono text-[#9AA2B1]">
+            <span class="text-[#5F6775]">DECLARED:</span>
+            <span class="text-[#F1F3F5]">claude-3-7-sonnet-20250219</span>
+          </div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-[rgba(255,255,255,0.1)] bg-[#0F1115]/50 text-xs font-mono text-[#9AA2B1]">
+            <span class="text-[#5F6775]">TESTED:</span>
+            <span class="text-[#F1F3F5]">claude-3-7-sonnet</span>
+          </div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-[rgba(255,255,255,0.1)] bg-[#0F1115]/50 text-xs font-mono text-[#9AA2B1]">
+            <span class="text-[#5F6775]">COMPOSITION:</span>
+            <span class="text-[#F1F3F5]">mixed-commercial-proxy</span>
+          </div>
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[4px] border border-[rgba(255,255,255,0.1)] bg-[#0F1115]/50 text-xs font-mono text-[#9AA2B1]">
+            <span class="text-[#5F6775]">EXPECTED FAMILY:</span>
+            <span class="text-[#F1F3F5]">anthropic-claude</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. Grouped Sections (No table, flat cards with hairline rows, 16px vertical padding) -->
+      <div class="space-y-5">
+
+        <!-- Group 1: 模型目录 -->
+        <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+          <header class="h-[46px] px-5 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#171A20]">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#F1F3F5]">
+              <span class="material-symbols-outlined !text-[18px] text-[#9AA2B1]">list_alt</span>
+              <span>模型目录</span>
+            </div>
+            <span class="text-xs font-mono text-[#5F6775]">2 项 · 2 通过</span>
+          </header>
+          <div class="divide-y divide-[rgba(255,255,255,0.05)]">
+            <!-- Row 01 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">01</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">GET /v1/models 响应端点标准结构</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  标准 HTTP 200 返回，包含 object="list" 与标准格式模型条目列表
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">24 条目 · 142ms</div>
+              </div>
+            </div>
+
+            <!-- Row 02 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">02</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">声明目标模型 ID 存在性与命名合规</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  列表中明确包含声明的 `claude-3-7-sonnet-20250219` 原生快照标识符
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">精确匹配</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Group 2: 端点可用性 -->
+        <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+          <header class="h-[46px] px-5 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#171A20]">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#F1F3F5]">
+              <span class="material-symbols-outlined !text-[18px] text-[#9AA2B1]">dns</span>
+              <span>端点可用性</span>
+            </div>
+            <span class="text-xs font-mono text-[#5F6775]">3 项 · 2 通过 · 1 信息</span>
+          </header>
+          <div class="divide-y divide-[rgba(255,255,255,0.05)]">
+            <!-- Row 03 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">03</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">DNS 解析与 TLS 1.3 证书校验</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  双向 SNI 握手正常，证书颁发机构 Let's Encrypt，无中间人自签名阻断
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">TLS_AES_256_GCM_SHA384 · 22ms</div>
+              </div>
+            </div>
+
+            <!-- Row 04 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">04</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">HTTP OPTIONS 预检与 CORS 策略</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  响应头正确暴露 anthropic-version 与 authorization 准入凭据字段
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">HTTP 204 · 18ms</div>
+              </div>
+            </div>
+
+            <!-- Row 05 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">05</span>
+              <span class="h-2 w-2 rounded-full bg-[#6B7280] mt-1.5 shrink-0" title="信息"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">边缘反向代理指纹识别</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  检测到服务端由 Cloudflare CDN 托管，出口路由经由 HKG Edge Node 转发
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#6B7280]">信息</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">CF-RAY: 8d9f4e2 · HKG</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Group 3: 协议兼容性 -->
+        <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+          <header class="h-[46px] px-5 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#171A20]">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#F1F3F5]">
+              <span class="material-symbols-outlined !text-[18px] text-[#9AA2B1]">code_blocks</span>
+              <span>协议兼容性</span>
+            </div>
+            <span class="text-xs font-mono text-[#5F6775]">4 项 · 2 通过 · 2 失败</span>
+          </header>
+          <div class="divide-y divide-[rgba(255,255,255,0.05)]">
+            <!-- Row 06 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">06</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">Messages API 非流式完整请求响应</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  返回完整 JSON Schema，含 usage token 计数与原生 stop_reason 字段
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">HTTP 200 · 812ms</div>
+              </div>
+            </div>
+
+            <!-- Row 07 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">07</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">SSE 文本流式事件帧状态机时序</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  content_block_start / delta / stop 严格符合官方顺序规范
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">42 事件帧 · 0 乱序</div>
+              </div>
+            </div>
+
+            <!-- Row 08 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">08</span>
+              <span class="h-2 w-2 rounded-full bg-[#EF4444] mt-1.5 shrink-0" title="失败"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">Extended Thinking 思考流事件与签名块透传</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  thinking_delta 在第 820 token 时偶发连接断开，未返回合法 signature 校验块
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#EF4444]">失败</span>
+                <div class="text-xs font-mono text-[#EF4444] mt-0.5">ERR_SSE_TRUNCATED · 820t</div>
+              </div>
+            </div>
+
+            <!-- Row 09 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">09</span>
+              <span class="h-2 w-2 rounded-full bg-[#EF4444] mt-1.5 shrink-0" title="失败"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">Tool Use（工具函数调用）往返往复序列</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  多轮对话中 tool_result 被错误降级为纯文本拼接，损坏了参数字典结构
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#EF4444]">失败</span>
+                <div class="text-xs font-mono text-[#EF4444] mt-0.5">INVALID_TOOL_BLOCK</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Group 4: 身份证据 -->
+        <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+          <header class="h-[46px] px-5 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#171A20]">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#F1F3F5]">
+              <span class="material-symbols-outlined !text-[18px] text-[#9AA2B1]">fingerprint</span>
+              <span>身份证据</span>
+            </div>
+            <span class="text-xs font-mono text-[#5F6775]">3 项 · 1 通过 · 1 失败 · 1 信息</span>
+          </header>
+          <div class="divide-y divide-[rgba(255,255,255,0.05)]">
+            <!-- Row 10 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">10</span>
+              <span class="h-2 w-2 rounded-full bg-[#EF4444] mt-1.5 shrink-0" title="失败"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">盲测熵指纹与官方基线对齐度</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  输入特定逻辑陷阱探针，输出 Token 概率分布与 Sonnet 基线偏离，疑似混用小模型套壳
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#EF4444]">失败</span>
+                <div class="text-xs font-mono text-[#EF4444] mt-0.5">熵偏离度 41.8% · 异常</div>
+              </div>
+            </div>
+
+            <!-- Row 11 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">11</span>
+              <span class="h-2 w-2 rounded-full bg-[#10B981] mt-1.5 shrink-0" title="通过"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">Tokenizer 计算一致性与虚增计数审计</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  1,024 字符基准提示词返回 usage 计费数量与官方分词器完全一致，无虚增截留
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#10B981]">通过</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">误差 0.00% · 246 tokens</div>
+              </div>
+            </div>
+
+            <!-- Row 12 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">12</span>
+              <span class="h-2 w-2 rounded-full bg-[#6B7280] mt-1.5 shrink-0" title="信息"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">System Prompt 注入透传纯度检查</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  未检测到服务商前置拼接推广语、广告词或系统级逆向指令篡改
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#6B7280]">信息</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">无污染插桩</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Group 5: 稳定性与性能 -->
+        <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+          <header class="h-[46px] px-5 flex items-center justify-between border-b border-[rgba(255,255,255,0.06)] bg-[#171A20]">
+            <div class="flex items-center gap-2 text-sm font-medium text-[#F1F3F5]">
+              <span class="material-symbols-outlined !text-[18px] text-[#9AA2B1]">speed</span>
+              <span>稳定性与性能</span>
+            </div>
+            <span class="text-xs font-mono text-[#5F6775]">2 项 · 1 失败 · 1 信息</span>
+          </header>
+          <div class="divide-y divide-[rgba(255,255,255,0.05)]">
+            <!-- Row 13 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">13</span>
+              <span class="h-2 w-2 rounded-full bg-[#EF4444] mt-1.5 shrink-0" title="失败"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">首字延迟（TTFT）与极端抖动监测</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  连续 20 轮基准请求 p95 延迟达 2,850ms，远超公立参考阈值（&lt;800ms）
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#EF4444]">失败</span>
+                <div class="text-xs font-mono text-[#EF4444] mt-0.5">TTFT 2,850ms · p95 超标</div>
+              </div>
+            </div>
+
+            <!-- Row 14 -->
+            <div class="py-4 px-5 flex items-start gap-4">
+              <span class="text-xs font-mono text-[#5F6775] pt-0.5 w-5 shrink-0">14</span>
+              <span class="h-2 w-2 rounded-full bg-[#6B7280] mt-1.5 shrink-0" title="信息"></span>
+              <div class="flex-1 min-w-0 pr-4">
+                <div class="text-sm font-medium text-[#F1F3F5] leading-snug">持续生成吞吐速率（Tokens Per Second）</div>
+                <div class="text-xs text-[#5F6775] mt-1 leading-normal">
+                  在建立稳定流式传输后，平均输出速率为 34.6 tps，流速抖动 ±6ms
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-medium text-[#6B7280]">信息</span>
+                <div class="text-xs font-mono text-[#5F6775] mt-0.5">34.6 tps · 稳定</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- 5. Collapsed Disclosure Row: 原始证据（已脱敏） -->
+      <section class="bg-[#171A20] rounded-[8px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+        <details class="group cursor-pointer">
+          <summary class="list-none px-5 py-3.5 flex items-center justify-between select-none hover:bg-[rgba(255,255,255,0.02)] transition-colors">
+            <div class="flex items-center gap-2 text-xs font-mono text-[#9AA2B1]">
+              <span class="material-symbols-outlined !text-[16px] text-[#5F6775]">terminal</span>
+              <span>原始证据（已脱敏）</span>
+              <span class="text-[#5F6775]">· raw_telemetry_dump.json</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-[#5F6775]">
+              <span class="font-mono">SHA256: e3b0c442...</span>
+              <span class="material-symbols-outlined !text-[18px] transition-transform duration-200 group-open:rotate-180">expand_more</span>
+            </div>
+          </summary>
+          <div class="px-5 py-4 border-t border-[rgba(255,255,255,0.06)] bg-[#0F1115]/80 text-xs font-mono text-[#9AA2B1] space-y-2 overflow-x-auto">
+            <div class="text-[#5F6775]">// 探针执行快照证据链（已自动脱敏 API Key 与敏感 Payload）</div>
+            <pre class="text-[#F1F3F5] leading-relaxed whitespace-pre font-mono text-[11px]">{
+  "audit_version": "v0.9.4-rc2",
+  "probe_cluster": "Tokyo-01 (Linode)",
+  "target_endpoint": "https://api.relayservice-proxy.net/v1",
+  "handshake_result": {
+    "status": "ANOMALOUS",
+    "categories": {
+      "catalog": { "pass": 2, "fail": 0 },
+      "endpoint": { "pass": 2, "fail": 0, "info": 1 },
+      "protocol": { "pass": 2, "fail": 2 },
+      "identity": { "pass": 1, "fail": 1, "info": 1 },
+      "stability": { "pass": 0, "fail": 1, "info": 1 }
+    }
+  },
+  "raw_dumps": [
+    "models_list.json",
+    "sse_event_stream_trace.txt",
+    "thinking_err_trace.dump",
+    "token_count_audit.log"
+  ]
+}</pre>
+          </div>
+        </details>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- 6. Footer Note -->
+  <footer class="w-full border-t border-[rgba(255,255,255,0.06)] py-6 px-6 bg-[#0F1115] mt-8">
+    <div class="max-w-[1120px] mx-auto flex items-center justify-between text-xs text-[#5F6775]">
+      <div>
+        RelayQuality · 公立客观中转质量探针体系
+      </div>
+      <div class="text-right">
+        收录 ≠ 推荐，验证通过 ≠ 安全
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

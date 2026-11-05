@@ -40,6 +40,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Redirect
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8710").rstrip("/")
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 ENGINE_PATH = os.environ.get("ENGINE_PATH", str(Path(__file__).parent.parent / "mq.py"))
+RENDER_SCRIPT = os.environ.get("RENDER_SCRIPT", str(Path(__file__).parent / "render_report.py"))
 PORT = int(os.environ.get("PORT", "8710"))
 REPO = os.environ.get("REPO", "cfrs2005/awesome-claude-code-relay")
 HUB_TOKEN = os.environ.get("HUB_TOKEN", "")
@@ -167,6 +168,9 @@ def public_result(binding: dict) -> dict:
         "report_url": r.get("report_url"),
         "finished_at": r.get("finished_at"),
         "engine": r.get("engine"),
+        "requested_model": r.get("requested_model"),
+        "tested_model": r.get("tested_model"),
+        "model_substituted": r.get("model_substituted", False),
     }
 
 
@@ -177,7 +181,17 @@ def verification_url(pr: int) -> str:
 
 # ---------------------------------------------------------------- engine ---
 
-def run_engine(base_url: str, key: str, model: str, out_dir: Path) -> tuple[dict, str]:
+def previous_report(pr: int) -> Path | None:
+    """找出该 PR 上一次成功产出的 report.json，用于检测模型目录 / 上游变化。"""
+    d = REPORTS_DIR / str(pr)
+    if not d.is_dir():
+        return None
+    candidates = sorted(d.glob("*/report.json"), reverse=True)
+    return candidates[0] if candidates else None
+
+
+def run_engine(base_url: str, key: str, model: str, out_dir: Path,
+               prev: Path | None = None) -> tuple[dict, str]:
     out_dir.mkdir(parents=True, exist_ok=True)
     jp, mp = out_dir / "report.json", out_dir / "report.md"
     fd, kp = tempfile.mkstemp(suffix=".key")
@@ -185,10 +199,11 @@ def run_engine(base_url: str, key: str, model: str, out_dir: Path) -> tuple[dict
         with os.fdopen(fd, "w") as f:
             f.write(key)
         os.chmod(kp, 0o600)
-        proc = subprocess.run(  # noqa: S603
-            [sys.executable, ENGINE_PATH, "--base-url", base_url, "--key-file", kp,
-             "--model", model, "--json", str(jp), "--markdown", str(mp)],
-            capture_output=True, text=True, timeout=RUN_TIMEOUT)
+        cmd = [sys.executable, ENGINE_PATH, "--base-url", base_url, "--key-file", kp,
+               "--model", model, "--json", str(jp), "--markdown", str(mp)]
+        if prev and prev.exists():
+            cmd += ["--previous-report", str(prev)]
+        proc = subprocess.run(cmd, capture_output=True, text=True, timeout=RUN_TIMEOUT)  # noqa: S603
         if not jp.exists():
             raise RuntimeError(f"engine failed: {proc.stderr[-800:] or proc.stdout[-800:]}")
         doc = json.loads(jp.read_text(encoding="utf-8"))
@@ -406,13 +421,20 @@ def api_run(pr: int, request: Request):
         tested_base = keyrec["base"] or binding["api_base"]
         ts = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
         out_dir = REPORTS_DIR / str(pr) / ts
-        doc, md = run_engine(tested_base, keyrec["key"], binding.get("model"), out_dir)
+        prev = previous_report(pr)
+        doc, md = run_engine(tested_base, keyrec["key"],
+                             binding.get("model") or "claude-haiku-4-5-20251001",
+                             out_dir, prev=prev)
         verdict = doc.get("verdict", {}).get("label", "inconclusive")
         engine_v = doc.get("engine", "?")
-        report_url = f"{BASE_URL}/reports/{pr}/{ts}.md"
+        # 人读的是 HTML 页；.md / .json 作为原始件保留
+        report_url = f"{BASE_URL}/r/{pr}/{ts}"
 
         result = {"status": "completed", "verdict": verdict, "engine": engine_v,
                   "tested_base": tested_base,
+                  "requested_model": (doc.get("meta") or {}).get("requested_model"),
+                  "tested_model": (doc.get("meta") or {}).get("model"),
+                  "model_substituted": bool(doc.get("substituted")),
                   "finished_at": int(time.time()), "report_url": report_url}
         with _store_lock:
             store = load_store()
@@ -427,12 +449,39 @@ def api_run(pr: int, request: Request):
             md + (f"\n\n---\n- 实测端点: `{tested_base}`"
                   + ("\n- ⚠️ 实测端点与 PR 声明的 api_base 不一致，请先更新 PR" if pub["base_mismatch"] else "")
                   + f"\n- 引擎: `{engine_v}` · 报告: {report_url}"
+                  + f"\n- 原始文件: {BASE_URL}/reports/{pr}/{ts}.md"
                   + f"\n- PR 验证工作台: {verification_url(pr)}"
                   + ("\n- ✅ 验证通过：请在 PR 下评论 `/mq-done` 触发自动合并"
                      if pub["verified"] else "\n- ❌ 未通过：可修复后在 Hub 重新提交 Key 复测")))
         return {"ok": True, **pub, "github": {"comment": comment}}
     finally:
         lk.release()
+
+
+def _render_report_html(report_json: Path) -> str:
+    """用 scripts/render_report.py 把 report.json 渲成 HTML 页。"""
+    import importlib.util
+    script = Path(RENDER_SCRIPT)
+    if not script.is_file():
+        # 仓库形态兜底：mq/hub/app.py -> ../../scripts/render_report.py
+        alt = Path(__file__).resolve().parent.parent.parent / "scripts" / "render_report.py"
+        script = alt if alt.is_file() else script
+    if not script.is_file():
+        raise HTTPException(500, f"render_report.py 缺失（找过 {RENDER_SCRIPT}）")
+    spec = importlib.util.spec_from_file_location("render_report", script)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.build(json.loads(report_json.read_text(encoding="utf-8")))
+
+
+@app.get("/r/{pr}/{ts}", response_class=HTMLResponse)
+def view_report(pr: int, ts: str):
+    """人类可读的报告页。原始 markdown / json 仍可通过 /reports/... 取。"""
+    safe = Path(ts).name
+    jp = REPORTS_DIR / str(pr) / safe / "report.json"
+    if not jp.is_file():
+        raise HTTPException(404, "report not found")
+    return HTMLResponse(_render_report_html(jp))
 
 
 @app.get("/reports/{pr}/{name}")
