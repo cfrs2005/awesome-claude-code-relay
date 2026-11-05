@@ -28,6 +28,7 @@
 <!-- providers:start -->
 | 验证状态 | 服务商 | 家族 | 类型 | 官网 | API 端点 |
 |---|--------|:---:|:---:|------|------------------------------|
+| ✅ 基础验证通过 | LINUX DO Hub | OpenAI ⚠️ 非 Claude | 公益 | [linux.do](https://linux.do) | `https://hub.linux.do` |
 | – 未验证 | 86GameStore | OpenAI ⚠️ 非 Claude | 商业 | [86gamestore.com](https://86gamestore.com) | `https://api.86gamestore.com` |
 | – 未验证 | 88code | Claude | 商业 | [www.88code.org](https://www.88code.org) | `—` |
 | – 未验证 | AICodeMirror | Claude | 商业 | [www.aicodemirror.com](https://www.aicodemirror.com) | `—` |

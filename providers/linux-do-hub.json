@@ -17,9 +17,9 @@
   "notes": "OpenAI / Codex 通道，非 Claude。与 hub.oaifree.com 为同一服务的不同域名，实测模型目录一致。可用于 Claude Code 的 ANTHROPIC_BASE_URL，但返回的是 OpenAI 体系实现（响应 id 为 resp_ 前缀、tool id 为 call_ 前缀）",
   "added_at": "2026-11-05",
   "verification": {
-    "status": "unverified",
-    "last_verified_at": null,
-    "engine_version": null,
-    "report_url": null
+    "status": "basic_passed",
+    "last_verified_at": "2026-11-05T05:10:03Z",
+    "engine_version": "0.2.0",
+    "report_url": "https://github.com/cfrs2005/awesome-claude-code-relay/pull/34"
   }
 }
