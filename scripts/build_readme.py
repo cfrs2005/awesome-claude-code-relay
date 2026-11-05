@@ -1,56 +1,50 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-从 providers/*.json 重新生成 README.md 中的服务商目录表（providers:start/end 标记之间）。
+从 providers/*.json 重新生成 README.md 中的服务商目录表（providers:start/end 标记之间），
+顺带同步顶部两个 badge（服务商数量、MQ 引擎版本）—— 它们曾经长期漂移：
+条目涨到 31 个、引擎到了 0.2.0，badge 还写着 30 和 v0.1.0。
+
 运行: python3 scripts/build_readme.py [README.md]
 """
 import json
 import pathlib
+import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 PROVIDERS = ROOT / "providers"
+ENGINE = ROOT / "mq" / "mq.py"
 
-STATUS_ORDER = {
-    "basic_passed": 0,
-    "pending": 1,
-    "inconclusive": 1,
-    "endpoint_unreachable": 2,
-    "auth_rejected": 2,
-    "unverified": 3,
-    "model_not_found": 4,
-    "protocol_incompatible": 4,
-    "behavior_anomaly": 5,
-    "identity_suspect": 6,
-}
-STATUS_LABEL = {
-    "basic_passed": "✅ 基础验证通过",
-    "pending": "⏳ 验证中",
-    "inconclusive": "❔ 证据不足",
-    "evidence_insufficient": "❔ 证据不足",
-    "unverified": "– 未验证",
-    "endpoint_unreachable": "⛔ 端点不可达",
-    "auth_rejected": "⛔ 鉴权被拒",
-    "model_not_found": "⚠️ 声明模型不存在",
-    "protocol_incompatible": "⚠️ 协议不兼容",
-    "behavior_anomaly": "⚠️ 行为异常",
-    "identity_suspect": "🚨 身份存疑",
-}
+sys.path.insert(0, str(ROOT / "mq"))
+from contracts import (  # noqa: E402
+    ENTRY_FAMILY_LABEL, ENTRY_FAMILY_NOTE, STATUS_LABEL, STATUS_ORDER,
+)
+
 TYPE_LABEL = {"commercial": "商业", "community": "公益"}
-# 家族标注：本目录默认 claude，其他家族必须明示，避免读者误用
-FAMILY_LABEL = {
-    "claude": "Claude",
-    "openai": "OpenAI",
-    "gemini": "Gemini",
-    "other": "其他",
-}
-FAMILY_NOTE = {
-    "openai": "⚠️ 非 Claude",
-    "gemini": "⚠️ 非 Claude",
-    "other": "⚠️ 非 Claude",
-}
 
 START, END = "<!-- providers:start -->", "<!-- providers:end -->"
+
+BADGE_PROVIDERS = re.compile(r"(badge/服务商-)\d+(-blue)")
+BADGE_ENGINE = re.compile(r"(badge/MQ%20引擎-v)[0-9][^)-]*-(purple)")
+
+
+def engine_version():
+    try:
+        m = re.search(r'^MQ_VERSION\s*=\s*"([^"]+)"',
+                      ENGINE.read_text(encoding="utf-8"), re.M)
+        return m.group(1) if m else ""
+    except OSError:
+        return ""
+
+
+def sync_badges(text, count):
+    """把 badge 上的数字对齐到真实数据，避免又一处静默漂移。"""
+    text = BADGE_PROVIDERS.sub(lambda m: f"{m.group(1)}{count}{m.group(2)}", text)
+    ver = engine_version()
+    if ver:
+        text = BADGE_ENGINE.sub(lambda m: f"{m.group(1)}{ver}-{m.group(2)}", text)
+    return text
 
 
 def main():
@@ -75,9 +69,9 @@ def main():
         base = obj.get("api_base") or "—"
         site_md = f"[{site.replace('https://', '')}]({site})" if site else "—"
         fam = obj.get("family") or "claude"
-        fam_md = FAMILY_LABEL.get(fam, fam)
+        fam_md = ENTRY_FAMILY_LABEL.get(fam, fam)
         if fam != "claude":
-            fam_md = f"{fam_md} {FAMILY_NOTE.get(fam, '')}".strip()
+            fam_md = f"{fam_md} {ENTRY_FAMILY_NOTE.get(fam, '')}".strip()
         lines.append(f"| {status} | {obj['name']} | {fam_md} "
                      f"| {TYPE_LABEL.get(obj.get('type'), obj.get('type'))} "
                      f"| {site_md} | `{base}` |")
@@ -91,8 +85,9 @@ def main():
     else:
         print(f"warning: 未找到 {START}/{END} 标记，README 未更新", file=sys.stderr)
         sys.exit(1)
+    text = sync_badges(text, len(rows))
     readme_path.write_text(text, encoding="utf-8")
-    print(f"README 目录表已更新（{len(rows)} 个服务商）")
+    print(f"README 目录表已更新（{len(rows)} 个服务商，引擎 {engine_version() or '?'}）")
 
 
 if __name__ == "__main__":

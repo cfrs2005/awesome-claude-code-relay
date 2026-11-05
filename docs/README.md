@@ -11,6 +11,7 @@
 | [2026-11-04-comment-self-trigger-loop.md](2026-11-04-comment-self-trigger-loop.md) | 评论触发工作流自循环的根因、修复原则和安全自查 |
 | [2026-11-04-release-cutover-and-legacy-migration.md](2026-11-04-release-cutover-and-legacy-migration.md) | 发布切换点、历史条目一次性迁移 PR/MR、每个 PR 的专属验证地址与新规则 |
 | [2026-11-04-legacy-pr-inventory.md](2026-11-04-legacy-pr-inventory.md) | 发布切换前历史 PR 清单、状态和重新提交规则 |
+| [2026-11-05-pipeline-hardening-and-release.md](2026-11-05-pipeline-hardening-and-release.md) | 链路止血（回写静默失败）、契约单一事实源、测试网、tag 即部署 |
 
 ## 命名约定
 

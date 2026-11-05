@@ -34,27 +34,17 @@ import subprocess
 import sys
 import urllib.parse
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "mq"))
+from contracts import (  # noqa: E402
+    ENGINE_URL, FAMILY_ALIAS, FULL_ENOUGH_MODES, MERGEABLE, MIN_ENGINE_VERSION,
+    RETRY, VERDICT_LABEL, version_lt,
+)
+
 BLOCK_RE = re.compile(r"<!--MQ-REPORT:([A-Za-z0-9+/=]+)-->")
 REQUIRED_KEYS = ("v", "engine", "tested_at", "base_url", "host", "verdict")
 
-# 只有这些结论允许自动合并。其余一律转人工，但都不算「校验失败」。
-MERGEABLE = {"basic_passed"}
-
-# quick 模式为了省钱跳过了大部分探针，不能作为收录依据。
-FULL_ENOUGH_MODES = {"standard", "full"}
-
-# 这些结论说明「这次测试本身没做成」，应重跑而不是拒绝。
-RETRY = {"endpoint_unreachable", "auth_rejected", "evidence_insufficient"}
-
-VERDICT_ZH = {
-    "basic_passed": "基础验证通过",
-    "endpoint_unreachable": "端点不可达",
-    "auth_rejected": "鉴权被拒",
-    "model_not_found": "声明模型不存在",
-    "protocol_incompatible": "协议不兼容",
-    "behavior_anomaly": "行为异常",
-    "identity_suspect": "身份存疑",
-}
+# 结论文案、放行集合、重跑集合、家族词表全部来自契约层（mq/contracts.py）。
+VERDICT_ZH = VERDICT_LABEL
 
 
 def git(*args):
@@ -80,9 +70,6 @@ def changed_provider(base, head):
     except Exception:  # noqa: BLE001
         return path, None
     return path, entry
-
-
-FAMILY_ALIAS = {"openai": "gpt", "anthropic": "claude", "google": "gemini"}
 
 
 def norm_family(name):
@@ -223,6 +210,13 @@ def main():
             res["state"] = "stale"
             res["reasons"].append(
                 f"报告已过期（{res['age_days']:.1f} 天 > {args.max_age_days:g} 天），请重新跑一次")
+        elif version_lt(best.get("engine") or "0", MIN_ENGINE_VERSION):
+            # 旧引擎没有家族一致性、模式档位这些检查，它的 basic_passed 不能直接当证据。
+            # 不校验版本时，一份 v0.1.0 的报告可以绕过 v0.2.0 才加的规则进入目录。
+            res["state"] = "engine_too_old"
+            res["reasons"].append(
+                f"报告由引擎 `{best.get('engine') or '未知'}` 生成，低于最低要求 "
+                f"`{MIN_ENGINE_VERSION}`。旧版引擎缺少家族一致性与档位检查，请用当前版本重跑")
         elif norm_family(best.get("expect_family")) != norm_family(declared_family):
             res["state"] = "family_mismatch"
             res["reasons"].append(
@@ -276,19 +270,20 @@ def main():
         "bad_timestamp": "❌ **报告时间戳异常**",
         "mode_too_small": "⏳ **报告档位太低**",
         "family_mismatch": "❌ **报告家族与条目标注不一致**",
+        "engine_too_old": "⏳ **引擎版本过低**",
     }
     L.append(STATE_HEAD.get(res["state"], "⚠️ **状态未知**"))
     L.append("")
     for r in res["reasons"]:
         L.append(f"- {r}")
 
-    if res["state"] in ("missing", "stale", "retest", "mode_too_small", "family_mismatch"):
+    if res["state"] in ("missing", "stale", "retest", "mode_too_small",
+                        "family_mismatch", "engine_too_old"):
         L.append("")
         L.append("在**你自己的机器**上跑一次（Key 不出本机）：")
         L.append("")
         L.append("```bash")
-        L.append("curl -fsSL https://raw.githubusercontent.com/cfrs2005/"
-                 "awesome-claude-code-relay/main/mq/mq.py -o mq.py")
+        L.append(f"curl -fsSL {ENGINE_URL} -o mq.py")
         L.append(f"python3 mq.py --base-url {res['declared_base'] or 'https://api.example.com'} "
                  "--key sk-your-key --model <你声明的模型> \\")
         L.append(f"  --mode standard --expect-family {res['declared_family']} "

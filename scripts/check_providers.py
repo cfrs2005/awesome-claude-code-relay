@@ -131,7 +131,10 @@ def main():
     schema_changes = [(s, p) for s, p in files if p == "providers/schema.json"]
 
     if schema_changes:
-        warns.append("providers/schema.json 被修改：需维护者确认后才能自动合并")
+        # 放宽 schema 会让后续条目绕过校验，所以它绝不能搭条目 PR 的车一起自动合并：
+        # 一律判失败并转人工（此前只记 warning，等于允许被顺手改掉）。
+        errs.append("providers/schema.json 被修改：schema 变更必须单独提 PR 并由维护者审查，"
+                    "不得与条目变更同批提交")
     if other_changes:
         errs.append("包含 providers/ 之外的变更，超出自动合并白名单: " +
                     ", ".join(p for _, p in other_changes[:5]))
@@ -183,7 +186,8 @@ def main():
 
     result = {
         "ok": not errs,
-        "auto_mergeable": not errs and not any("白名单" in e for e in errs) and len(provider_changes) > 0,
+        # errs 非空即不可合并；白名单违规也在 errs 里，不必重复判断。
+        "auto_mergeable": not errs and len(provider_changes) > 0,
         "errors": errs,
         "warnings": warns,
         "provider_changes": [p for _, p in provider_changes],
@@ -198,10 +202,9 @@ def main():
     if warns:
         summary.append("### 警告（人工确认）")
         summary.extend(f"- ⚠️ {w}" for w in warns)
-    summary_path = pathlib.Path(os_summary := "/dev/null")
     if os.environ.get("GITHUB_STEP_SUMMARY"):
-        summary_path = pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"])
-        summary_path.write_text("\n".join(summary) + "\n", encoding="utf-8")
+        pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]).write_text(
+            "\n".join(summary) + "\n", encoding="utf-8")
     print("\n".join(summary))
     print("RESULT: " + json.dumps(result, ensure_ascii=False))
     sys.exit(0 if result["ok"] else 1)

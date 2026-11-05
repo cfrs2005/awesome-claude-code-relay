@@ -1,0 +1,5 @@
+# 开发/CI 依赖（引擎本身只用标准库，不需要装任何东西）
+pytest>=8
+jsonschema>=4
+PyYAML>=6
+ruff>=0.5

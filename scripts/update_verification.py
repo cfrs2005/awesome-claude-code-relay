@@ -11,15 +11,11 @@ import json
 import pathlib
 import sys
 
-ALLOWED = {
-    # 保留值
-    "unverified", "pending", "inconclusive",
-    # MQ v0.2.0 结论枚举
-    "basic_passed", "endpoint_unreachable", "auth_rejected", "model_not_found",
-    "protocol_incompatible", "behavior_anomaly", "identity_suspect",
-    # 历史值（旧报告仍可能出现）
-    "evidence_insufficient",
-}
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "mq"))
+from contracts import VERIFICATION_STATUSES  # noqa: E402
+
+# 可写入的状态集合直接来自契约层，与 providers/schema.json 的 enum 同源。
+ALLOWED = set(VERIFICATION_STATUSES)
 
 
 def main():

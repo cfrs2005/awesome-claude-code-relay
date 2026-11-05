@@ -22,36 +22,14 @@ import pathlib
 import re
 import sys
 
-VERDICT_ZH = {
-    "basic_passed": "基础验证通过",
-    "endpoint_unreachable": "端点不可达",
-    "auth_rejected": "鉴权被拒",
-    "model_not_found": "声明模型不存在",
-    "protocol_incompatible": "协议不兼容",
-    "behavior_anomaly": "行为异常",
-    "identity_suspect": "身份存疑",
-    "evidence_insufficient": "证据不足",
-}
-PILL_ZH = {
-    "basic_passed": "通过",
-    "identity_suspect": "身份存疑",
-    "model_not_found": "声明不实",
-    "behavior_anomaly": "行为异常",
-    "protocol_incompatible": "协议不兼容",
-    "endpoint_unreachable": "不可达",
-    "auth_rejected": "鉴权失败",
-    "evidence_insufficient": "证据不足",
-}
-VERDICT_TONE = {
-    "basic_passed": "ok",
-    "identity_suspect": "warn",
-    "model_not_found": "warn",
-    "evidence_insufficient": "warn",
-    "behavior_anomaly": "err",
-    "protocol_incompatible": "err",
-    "endpoint_unreachable": "err",
-    "auth_rejected": "err",
-}
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "mq"))
+from contracts import (  # noqa: E402
+    ENGINE_URL, FAMILY_ZH, VERDICT_LABEL, VERDICT_PILL, VERDICT_TONE,
+)
+
+# 结论文案与配色语义统一来自 mq/contracts.py。保留旧名以少改下游调用点。
+VERDICT_ZH = VERDICT_LABEL
+PILL_ZH = VERDICT_PILL
 VERDICT_GLYPH = {"ok": "✓", "warn": "!", "err": "✕", "info": "i"}
 
 GROUP_META = {
@@ -76,10 +54,6 @@ LEGACY_GROUP = {
 }
 STATUS_TONE = {"PASS": "ok", "WARN": "warn", "FAIL": "err", "INFO": "info"}
 STATUS_WORD = {"PASS": "通过", "WARN": "注意", "FAIL": "失败", "INFO": "信息"}
-FAMILY_ZH = {"claude": "Claude", "gpt": "OpenAI / GPT", "gemini": "Gemini",
-             "glm": "GLM", "qwen": "Qwen", "deepseek": "DeepSeek", "other": "其他"}
-
-
 def _resolve_font_dir():
     """字体目录：优先环境变量，其次脚本同级 fonts/（部署形态），最后仓库 design/fonts/。"""
     env = os.environ.get("MQ_FONT_DIR")
@@ -155,9 +129,13 @@ CSS = """
   --ink-2:#5C5A56;      /* 深岩灰 */
   --ink-3:#857F74;      /* 三级文字（由次文本推导） */
   --clay:#D97757;       /* 品牌强调 珊瑚橙 */
-  --moss:#4A6B5D;       /* 辅助强调 复古墨绿 */
+  --clay-soft:#F2E3D9;  /* 强调色的浅底（徽章、警告块） */
+  --moss:#4A6B5D;       /* 辅助强调 复古墨绿（通过） */
+  --warn:#A9532F;       /* 注意 —— 与 clay 区分开，避免「强调」和「警告」同一个色 */
   --rust:#A6472F;       /* 失败（clay 深阶） */
   --line:#D6D0C4;       /* 1px 柔和描边 */
+  --line-2:#E2DCD1;     /* 更弱的分隔线（行与行之间） */
+  --code:#E5DFD3;       /* 行内代码底 */
 
   /* 字体 */
   --serif:"Instrument Serif","Playfair Display",Georgia,"Songti SC",
@@ -181,7 +159,9 @@ a{color:inherit;text-decoration:none}
   align-items:center;gap:9px}
 .brand::before{content:"";width:6px;height:6px;border-radius:50%;
   background:var(--clay)}
-.topbar .nav{margin-left:auto;font-size:12.5px;color:var(--ink-2)}
+.topbar .nav{margin-left:auto;font-size:12.5px;color:var(--ink-2);
+  display:flex;gap:16px;align-items:center}
+.topbar .nav a:hover{color:var(--clay)}
 .topbar .host{font:12px/1 var(--mono);color:var(--ink-3)}
 
 .verdict{display:grid;grid-template-columns:1fr 250px;gap:56px;align-items:start;
@@ -189,7 +169,7 @@ a{color:inherit;text-decoration:none}
 .pill{display:inline-block;font-size:11.5px;line-height:1;letter-spacing:.03em;
   padding:6px 10px;border-radius:4px;background:var(--surface);color:var(--ink-2);
   border:1px solid var(--line);margin-bottom:18px}
-.pill.warn{border-color:#E4C4B5;color:#A9532F;background:#F2E3D9}
+.pill.warn{border-color:#E4C4B5;color:var(--warn);background:var(--clay-soft)}
 .pill.ok{border-color:#BFCFC6;color:#3E5A4D;background:#E4EAE3}
 .pill.err{border-color:#E0BCAF;color:var(--rust);background:#F1DED6}
 h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
@@ -221,7 +201,7 @@ h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
 .gh .cnt{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
 
 .row{display:grid;grid-template-columns:24px 14px 1fr 180px;gap:12px;
-  align-items:start;padding:18px 0;border-bottom:1px solid #E2DCD1}
+  align-items:start;padding:18px 0;border-bottom:1px solid var(--line-2)}
 .rows .row:last-child{border-bottom:0}
 .idx{font:11.5px/2.1 var(--mono);color:#A29B8E}
 .dot{width:6px;height:6px;border-radius:50%;margin-top:10px}
@@ -230,7 +210,7 @@ h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
 .nm{font-weight:500;font-size:14px;line-height:1.65;letter-spacing:.005em}
 .ds{color:var(--ink-2);font-size:13px;line-height:1.85;margin-top:5px}
 .ds code,.concl code,.repro .note code{font:12px/1 var(--mono);color:var(--ink);
-  background:#E5DFD3;padding:2px 5px;border-radius:3px}
+  background:var(--code);padding:2px 5px;border-radius:3px}
 .rt{text-align:right}
 .sw{font-size:11.5px;line-height:1.4;letter-spacing:.02em}
 .sw.ok{color:var(--moss)} .sw.warn{color:var(--clay)}
@@ -273,6 +253,23 @@ footer .r{text-align:right;font-family:var(--mono)}
   footer{display:block}
   footer .r{text-align:left;margin-top:10px}
 }
+
+@media(max-width:640px){
+  .wrap{padding:0 18px}
+  .topbar{height:60px}
+  .topbar .nav{gap:12px;font-size:12px}
+  h1{font-size:26px}
+  .verdict{padding:22px 0 28px;gap:16px}
+  .ratio b{font-size:24px}
+  .meta{grid-template-columns:1fr;row-gap:14px;padding:18px 0 20px}
+  .meta > div{padding-left:0;border-left:0}
+  .group{padding:26px 0 4px}
+  .row{grid-template-columns:16px 10px 1fr;gap:9px;padding:15px 0}
+  .rt{grid-column:3}
+  .repro{margin-top:30px;padding:15px 16px}
+  .repro pre{font-size:11px}
+  footer{margin:36px 0 40px}
+}
 """
 
 
@@ -292,7 +289,7 @@ INDEX_CSS = """
 .step .n{font:11px/1 var(--mono);color:var(--clay);letter-spacing:.06em}
 .step h3{font:400 16.5px/1.5 var(--serif);margin:9px 0 7px}
 .step p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.85}
-.step code{font:11.5px/1 var(--mono);background:#E5DFD3;padding:2px 5px;border-radius:3px}
+.step code{font:11.5px/1 var(--mono);background:var(--code);padding:2px 5px;border-radius:3px}
 
 .cmd{margin-top:30px;background:var(--surface);border:1px solid var(--line);
   border-radius:var(--r);padding:18px 20px}
@@ -307,7 +304,7 @@ INDEX_CSS = """
 .lhead h2{font:400 19px/1.4 var(--serif);margin:0}
 .lhead .cnt{margin-left:auto;font:11.5px/1 var(--mono);color:var(--ink-3)}
 .lrow{display:grid;grid-template-columns:12px 1fr auto 16px;gap:16px;
-  align-items:center;padding:17px 0;border-bottom:1px solid #E2DCD1;
+  align-items:center;padding:17px 0;border-bottom:1px solid var(--line-2);
   text-decoration:none;color:inherit}
 .lrow:hover .lhost{color:var(--clay)}
 .lrow .dot{margin-top:0}
@@ -329,12 +326,64 @@ INDEX_CSS = """
   .lstat{grid-column:2;text-align:left}
   .arw{display:none}
 }
+
+@media(max-width:640px){
+  .hero{padding:26px 0 30px}
+  .hero h1{font-size:27px}
+  .lede{font-size:13px}
+  .stat b{font-size:26px}
+  .topbar .host{display:none}
+  .topbar .nav{gap:12px;font-size:12px}
+  .lhost{font-size:15.5px}
+  .lsub{font-size:11px;word-break:break-all}
+  .cmd,.repro{padding:15px 16px}
+  .cmd pre,.repro pre{font-size:11px}
+}
+
+.disclaimer{margin:14px 0 0;font-size:12px;color:var(--ink-3);line-height:1.85}
+.backlink{margin:30px 0 0;font-size:12.5px;color:var(--ink-2)}
+.backlink a{color:var(--clay)}
 """
 
 
-def build_index(entries, mode="all"):
-    """首页 / 单个 PR 的报告索引。与报告页共用同一套 token 与字体。"""
-    n_ep = len({e.get("host") for e in entries if e.get("host")})
+REPO_URL = "https://github.com/cfrs2005/awesome-claude-code-relay"
+
+
+def _provider_rows(providers):
+    """目录区：一家服务商一行。排序在生成 providers-index.json 时已做好。"""
+    out = []
+    for p in providers:
+        tone = p.get("tone") or "info"
+        sub = []
+        if p.get("family_label"):
+            sub.append(f'<i>{esc(p["family_label"])}</i>')
+        if p.get("type_label"):
+            sub.append(esc(p["type_label"]))
+        if p.get("api_base"):
+            sub.append(f'<i>{esc(p["api_base"])}</i>')
+        site = p.get("website") or ""
+        href = esc(site) if site.startswith("https://") else "#"
+        out.append(
+            f'<a class="lrow" href="{href}" rel="noopener nofollow" target="_blank">'
+            f'<span class="dot {tone}"></span>'
+            f'<div><div class="lhost">{esc(p.get("name") or "—")}</div>'
+            f'<div class="lsub">{" · ".join(sub)}</div></div>'
+            f'<div class="lstat"><span class="sw {tone}">'
+            f'{esc(p.get("status_label") or "")}</span>'
+            f'<em>{esc((p.get("engine_version") or "") and ("引擎 " + p["engine_version"]) or "—")}</em>'
+            f'</div><span class="arw">↗</span></a>\n')
+    return "".join(out)
+
+
+def build_index(entries, mode="all", providers=None):
+    """首页 / 单个 PR 的报告索引。与报告页共用同一套 token 与字体。
+
+    首页是「目录 + 报告」两半：只列报告的话，读者看不到有哪些站可选，
+    而目录只存在于 GitHub README 里——站点就少了一半产品。
+    providers 来自 providers-index.json（部署时由 scripts/build_providers_index.py 生成）。
+    """
+    entries = entries or []
+    providers = providers or []
     n_pass = sum(1 for e in entries if e.get("verdict") == "basic_passed")
     n_err = sum(1 for e in entries if e.get("tone") == "err")
 
@@ -344,16 +393,17 @@ def build_index(entries, mode="all"):
         lede = ("这个 PR 提交的 MQ 报告。报告由提交者在本机运行得出，"
                 "本站只存档与呈现，不接收 Key、不代跑探针。")
     else:
-        h1 = "验证报告索引"
-        lede = ("中转站质量由提交者在自己机器上实测，报告公开、命令可复现、"
-                "判断留给读者。本站不做评分，也不代替你决定用不用。")
+        h1 = "中转站目录与验证报告"
+        lede = ("收录只是入口：每家站的协议兼容性与模型目录由提交者在自己机器上实测，"
+                "报告公开、命令可复现。本站不做评分，也不代替你决定用不用。")
 
-    if entries:
-        stat_block = (f'<div class="stat"><b>{len(entries)}</b>份报告'
-                      f'<span class="k">{n_ep} 个端点 · {n_pass} 通过</span></div>')
+    if mode == "single":
+        stat_block = f'<div class="stat"><b>{len(entries)}</b>份报告<span class="k">PR #{esc(entries[0]["pr"]) if entries else "—"}</span></div>'
     else:
-        stat_block = '<div class="stat"><b>0</b>份报告<span class="k">—</span></div>'
+        stat_block = (f'<div class="stat"><b>{len(providers)}</b>家服务商'
+                      f'<span class="k">{len(entries)} 份报告 · {n_pass} 份通过</span></div>')
 
+    # ---- 报告列表 ----
     rows = []
     for e in entries:
         tone = e.get("tone") or "info"
@@ -373,23 +423,63 @@ def build_index(entries, mode="all"):
             f'<em>{esc(e.get("n_pass"))}/{esc(e.get("total"))} 项</em></div>'
             f'<span class="arw">→</span></a>\n')
     if not rows:
-        body = ('<div class="empty">还没有任何报告。提交一份 PR，在本机跑 '
-                '<code>mq.py</code>，把报告贴进 PR 即可。'
-                '—— 报告会出现在这里。</div>')
+        if mode == "single":
+            body = ('<div class="empty">这个 PR 还没有报告存档。'
+                    '报告由提交者在本机跑出来后贴进 PR，'
+                    f'　<a href="{REPO_URL}/blob/main/README.md">查看怎么跑 ↗</a></div>')
+        else:
+            body = ('<div class="empty">还没有任何报告。提交一份 PR，在本机跑 '
+                    '<code>mq.py</code>，把报告贴进 PR 即可——报告会出现在这里。'
+                    f'　<a href="{REPO_URL}/blob/main/README.md">怎么提交 ↗</a></div>')
     else:
         body = "".join(rows)
 
-    head = f'<div class="lhead"><h2>报告</h2><span class="cnt">{len(entries)} 份</span></div>'
+    head = f'<div class="lhead"><h2>验证报告</h2><span class="cnt">{len(entries)} 份</span></div>'
     if n_err:
-        head = (f'<div class="lhead"><h2>报告</h2>'
+        head = (f'<div class="lhead"><h2>验证报告</h2>'
                 f'<span class="cnt">{len(entries)} 份 · {n_err} 份未通过</span></div>')
 
+    # ---- 目录区（仅首页）----
+    dir_section = ""
+    if mode != "single":
+        if providers:
+            dir_section = (
+                '<div class="lhead"><h2>服务商目录</h2>'
+                f'<span class="cnt">{len(providers)} 家 · 按验证状态排序</span></div>'
+                '<p class="disclaimer">收录 ≠ 推荐，验证通过 ≠ 安全。未验证是诚实的默认状态，'
+                '任何中转站都能看到你的请求明文。</p>\n'
+                + _provider_rows(providers))
+        else:
+            dir_section = (
+                '<div class="lhead"><h2>服务商目录</h2><span class="cnt">—</span></div>'
+                '<div class="empty">目录索引尚未生成（部署时由 '
+                '<code>scripts/build_providers_index.py</code> 产出）。</div>')
+
     repro_cmd = (
-        "curl -fsSL https://raw.githubusercontent.com/cfrs2005/"
-        "awesome-claude-code-relay/main/mq/mq.py -o mq.py\n"
+        f"curl -fsSL {ENGINE_URL} -o mq.py\n"
         "python3 mq.py --base-url https://api.example.com --key sk-你的key \\\n"
         "  --model <你声明的模型> --mode standard"
     )
+
+    steps = ""
+    if mode != "single":
+        steps = """
+<section class="steps">
+  <div class="step"><div class="n">01</div><h3>在本机跑</h3>
+    <p>用 <code>mq.py</code> 打自己的端点。Key 只留在你的机器上，本站不接收、不代跑。</p></div>
+  <div class="step"><div class="n">02</div><h3>把报告贴进 PR</h3>
+    <p>报告首行带一段看不见的机器可读块，Action 据此做确定性核验：端点一致、时效、结论。</p></div>
+  <div class="step"><div class="n">03</div><h3>等门禁复核</h3>
+    <p>四项全过即自动合并。AI 只做解读，不参与放行判定。</p></div>
+</section>
+
+<div class="cmd">
+  <div class="h"><b>怎么跑</b><span class="t">Python 3.9+ · 只用标准库</span></div>
+  <pre>%s</pre>
+</div>
+""" % esc(repro_cmd)
+    else:
+        steps = '<p class="backlink"><a href="/">← 返回目录与报告</a></p>'
 
     return f"""<!doctype html>
 <html lang="zh-CN"><head><meta charset="utf-8">
@@ -398,8 +488,10 @@ def build_index(entries, mode="all"):
 <style>{font_css()}{CSS}{INDEX_CSS}</style></head><body>
 
 <header class="topbar"><div class="wrap">
-  <span class="brand">RelayQuality</span>
-  <span class="nav"><a href="https://github.com/cfrs2005/awesome-claude-code-relay">目录仓库 ↗</a></span>
+  <a class="brand" href="/">RelayQuality</a>
+  <span class="nav"><a href="/">目录与报告</a>
+    <a href="{REPO_URL}" rel="noopener">仓库 ↗</a>
+    <a href="{REPO_URL}/blob/main/docs/verification-design.md" rel="noopener">验证说明 ↗</a></span>
   <span class="host">mq.80aj.com</span>
 </div></header>
 
@@ -413,19 +505,9 @@ def build_index(entries, mode="all"):
   {stat_block}
 </section>
 
-<section class="steps">
-  <div class="step"><div class="n">01</div><h3>在本机跑</h3>
-    <p>用 <code>mq.py</code> 打自己的端点。Key 只留在你的机器上，本站不接收、不代跑。</p></div>
-  <div class="step"><div class="n">02</div><h3>把报告贴进 PR</h3>
-    <p>报告首行带一段看不见的机器可读块，Action 据此做确定性核验：端点一致、时效、结论。</p></div>
-  <div class="step"><div class="n">03</div><h3>评论 /mq-done</h3>
-    <p>四项全过才自动合并。AI 只做解读，不参与放行判定。</p></div>
-</section>
+{steps}
 
-<div class="cmd">
-  <div class="h"><b>怎么跑</b><span class="t">Python 3.8+ · 只用标准库</span></div>
-  <pre>{esc(repro_cmd)}</pre>
-</div>
+{dir_section}
 
 {head}
 {body}
@@ -435,6 +517,34 @@ def build_index(entries, mode="all"):
     不能证明服务商不留存请求、也不能证明底层模型来自官方。</div>
   <div class="r">MQ 引擎 · 报告存档<br>判断留给读者</div>
 </footer>
+</main></body></html>"""
+
+
+def error_page(title, detail, hint=""):
+    """错误页。之前 404 直接吐 FastAPI 的 `{"detail":"..."}`，人类看到的是裸 JSON。"""
+    return f"""<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RelayQuality — {esc(title)}</title>
+<style>{font_css()}{CSS}{INDEX_CSS}</style></head><body>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">RelayQuality</a>
+  <span class="nav"><a href="/">目录与报告</a>
+    <a href="{REPO_URL}" rel="noopener">仓库 ↗</a></span>
+  <span class="host">mq.80aj.com</span>
+</div></header>
+
+<main class="wrap">
+<section class="hero">
+  <div>
+    <h1>{esc(title)}</h1>
+    <p class="lede">{esc(detail)}</p>
+    {f'<p class="lede">{esc(hint)}</p>' if hint else ''}
+  </div>
+  <div class="stat"><b>—</b>此路不通<span class="k">404 / 500</span></div>
+</section>
+<p class="backlink"><a href="/">← 返回目录与报告</a></p>
 </main></body></html>"""
 
 
@@ -473,8 +583,10 @@ def build(doc):
 <style>{font_css()}{CSS}</style></head><body>
 
 <header class="topbar"><div class="wrap">
-  <span class="brand">RelayQuality</span>
-  <span class="nav">验证说明</span>
+  <a class="brand" href="/">RelayQuality</a>
+  <span class="nav"><a href="/">目录与报告</a>
+    <a href="{REPO_URL}" rel="noopener">仓库 ↗</a>
+    <a href="{REPO_URL}/blob/main/docs/verification-design.md" rel="noopener">验证说明 ↗</a></span>
   <span class="host">{esc(host)}</span>
 </div></header>
 
@@ -545,8 +657,7 @@ def build(doc):
         repro_base = repro_base[:-3]
     repro_model = meta.get("requested_model") or meta.get("model") or "<模型>"
     repro_cmd = (
-        "curl -fsSL https://raw.githubusercontent.com/cfrs2005/"
-        "awesome-claude-code-relay/main/mq/mq.py -o mq.py\n"
+        f"curl -fsSL {ENGINE_URL} -o mq.py\n"
         f"python3 mq.py --base-url {repro_base} --key sk-your-key \\\n"
         f"  --model {repro_model} --mode {mode}"
         + ("" if expect == "any" else f" --expect-family {expect}")

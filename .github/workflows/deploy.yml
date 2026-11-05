@@ -1,0 +1,132 @@
+name: Deploy Hub
+
+# 打 tag（v*）即发布：打包 Hub 入口 + 契约层 + 渲染器 + 引擎副本 + 字体，
+# 上传到服务器，由 scripts/deploy.sh 备份、重启、验证版本，失败自动回滚。
+#
+# 需要的 Secrets（缺任一项会跳过部署并给出 warning，不会假装成功）：
+#   DEPLOY_HOST      服务器地址
+#   DEPLOY_USER      SSH 用户
+#   DEPLOY_SSH_KEY   部署专用私钥（务必是独立密钥，不要用个人密钥）
+#   DEPLOY_PORT      SSH 端口（可选，默认 22）
+#   DEPLOY_KNOWN_HOSTS  可选，服务器 host key（留空则自动 ssh-keyscan）
+#
+# 首次启用前，服务器侧需一次性准备（见 docs-private/OPERATIONS.md）：
+#   1. 部署用户的 authorized_keys 信任这把密钥
+#   2. sudoers 只放行 `systemctl restart mq-hub`
+#   3. /opt/mq-hub 目录属主可写
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-hub
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preflight (secrets present?)
+        id: pre
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${HOST:-}" ] || [ -z "${USER:-}" ] || [ -z "${KEY:-}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::未配置 DEPLOY_HOST / DEPLOY_USER / DEPLOY_SSH_KEY，本次跳过部署。配置后重新运行本工作流即可。"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build release package
+        if: steps.pre.outputs.configured == 'true'
+        id: build
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME}"
+          pkg="build/pkg"
+          mkdir -p "$pkg/engine" "$pkg/fonts"
+          cp mq/hub/app.py "$pkg/app.py"
+          cp mq/contracts.py "$pkg/contracts.py"
+          cp scripts/render_report.py "$pkg/render_report.py"
+          cp mq/mq.py "$pkg/engine/mq.py"
+          cp design/fonts/*.woff2 "$pkg/fonts/"
+          # 目录索引在打包时生成：Hub 运行时不读仓库、不打 GitHub API
+          python3 scripts/build_providers_index.py -o "$pkg/providers-index.json"
+          tar -czf build/release.tar.gz -C "$pkg" .
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "打包内容："
+          tar -tzf build/release.tar.gz
+
+      - name: Set up SSH
+        if: steps.pre.outputs.configured == 'true'
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          KNOWN: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          if [ -n "${KNOWN:-}" ]; then
+            printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          fi
+
+      - name: Upload package and deploy script
+        if: steps.pre.outputs.configured == 'true'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          set -euo pipefail
+          scp -i ~/.ssh/id_deploy -P "$PORT" \
+            build/release.tar.gz scripts/deploy.sh \
+            "$USER@$HOST:/tmp/"
+
+      - name: Run deploy (with rollback)
+        if: steps.pre.outputs.configured == 'true'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          VERSION: ${{ steps.build.outputs.version }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+            "sudo bash /tmp/deploy.sh /tmp/release.tar.gz '$VERSION'"
+
+      - name: Verify public health endpoint
+        if: steps.pre.outputs.configured == 'true'
+        env:
+          VERSION: ${{ steps.build.outputs.version }}
+          PUBLIC: ${{ vars.PUBLIC_HEALTH_URL || 'https://mq.80aj.com/healthz' }}
+        run: |
+          set -euo pipefail
+          for i in $(seq 1 10); do
+            if body="$(curl -fsS --max-time 5 "$PUBLIC")"; then
+              echo "公网 healthz: $body"
+              case "$body" in
+                *"\"version\": \"$VERSION\""*|*"\"version\":\"$VERSION\""*)
+                  echo "✅ 公网确认已是 $VERSION"
+                  exit 0 ;;
+              esac
+            fi
+            sleep 3
+          done
+          echo "::error::公网 healthz 未在预期时间内返回 ${VERSION}，请检查 Caddy / DNS / 证书。"
+          exit 1

@@ -31,7 +31,6 @@ import json
 import os
 import re
 import ssl
-import statistics
 import sys
 import time
 import urllib.error
@@ -243,12 +242,6 @@ class Report:
             "evidence": [mask(e) for e in (evidence or [])],
             "code": code,
         })
-
-    def get(self, cid):
-        for it in self.items:
-            if it["id"] == cid:
-                return it
-        return None
 
 
 def input_token_total(usage):
@@ -1124,13 +1117,17 @@ def build_markdown(rep, meta, vlabel, vdetail):
 # ---------------------------------------------------------------- selftest --
 
 def self_test():
-    ok = True
-    # SSE 事件类型集合
-    types = ["message_start", "content_block_delta", "message_delta", "message_stop"]
-    ok &= {"message_start", "message_delta", "message_stop"} <= set(types)
+    """离线自检：只覆盖纯函数与 verdict 分层，不发任何网络请求。
 
-    def mk(**kw):
+    协议/SSE/客户端解析需要真实 HTTP 交互，由 tests/test_engine_e2e.py 用
+    mock_relay 覆盖——这里不要写「对本地硬编码列表做子集检查」这类恒真断言，
+    那会让人误以为已经测过了。
+    """
+    ok = True
+
+    def mk(expect_family="claude"):
         r = Report()
+        r.expect_family = expect_family
         return r
 
     # 全通过
@@ -1177,6 +1174,23 @@ def self_test():
     ok &= (model_family("gpt-6.1-luna") == "gpt")
     ok &= (model_family("zhipu-glm-4") == "glm")
     ok &= (catalog_families(["claude-a", "gpt-b", "gpt-c"]) == {"gpt": 2, "claude": 1})
+    # 条目里写厂商名，引擎内部按前缀归类：两套词表必须归一
+    ok &= (normalize_family("openai") == "gpt")
+    ok &= (normalize_family("Anthropic") == "claude")
+
+    # 家族不符优先于连通性：即使基础调用失败，家族错了也是永久性不合格
+    r = mk()
+    r.add("basic", "基础", FAIL, code=502, group="availability")
+    r.add("family_expect", "期望家族", FAIL, "目录里 claude 数量为 0", group="catalog")
+    v, _ = verdict(r, {"declared_found": True})
+    ok &= (v == "identity_suspect")
+
+    # 实测 group 没有目标家族的上游账号，同样是永久性不合格
+    r = mk()
+    r.add("basic", "基础", PASS, group="availability")
+    r.add("family_reach", "家族可达", FAIL, "该分组无 claude 上游", group="availability")
+    v, _ = verdict(r, {"declared_found": True})
+    ok &= (v == "identity_suspect")
 
     # 遮罩
     ok &= ("sk-abc123" not in mask("key=sk-abc123456789"))

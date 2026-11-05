@@ -9,3 +9,10 @@ docs-private/
 
 # 本地跑出来的报告不入库（临时产物，且含被测端点信息）
 reports/
+
+# 本地测试环境
+.venv/
+.pytest_cache/
+
+# 部署时由 scripts/build_providers_index.py 生成
+providers-index.json

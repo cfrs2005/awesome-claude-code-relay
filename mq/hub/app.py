@@ -16,11 +16,11 @@ MQ Hub — 中转站官方验证入口（部署于 ntt197, mq.80aj.com）
   - 门禁 verified 为动态计算: verdict=basic_passed 且 tested_base == 当前 PR api_base
 """
 import base64
-import datetime
 import hashlib
 import hmac
 import json
 import os
+import re
 import secrets as pysecrets
 import subprocess
 import sys
@@ -35,12 +35,24 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 
+# 契约层（结论文案 / 配色语义 / 放行集合）与引擎、脚本共用一份，避免 Hub 自成一套。
+# 仓库形态：mq/hub/app.py → mq/contracts.py
+# 部署形态：/opt/mq-hub/app.py → /opt/mq-hub/contracts.py
+_MQ_DIR = Path(__file__).resolve().parent.parent
+if not (_MQ_DIR / "contracts.py").is_file():
+    _MQ_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(_MQ_DIR))
+from contracts import MERGEABLE, VERDICT_TONE  # noqa: E402
+
 # ---------------------------------------------------------------- config ---
 
 BASE_URL = os.environ.get("BASE_URL", "http://127.0.0.1:8710").rstrip("/")
 DATA_DIR = Path(os.environ.get("DATA_DIR", Path(__file__).parent / "data"))
 ENGINE_PATH = os.environ.get("ENGINE_PATH", str(Path(__file__).parent.parent / "mq.py"))
 RENDER_SCRIPT = os.environ.get("RENDER_SCRIPT", str(Path(__file__).parent / "render_report.py"))
+# 目录索引由 scripts/build_providers_index.py 在部署时生成，跟着发布包一起走。
+PROVIDERS_INDEX = os.environ.get("PROVIDERS_INDEX",
+                                 str(Path(__file__).parent / "providers-index.json"))
 PORT = int(os.environ.get("PORT", "8710"))
 REPO = os.environ.get("REPO", "cfrs2005/awesome-claude-code-relay")
 HUB_TOKEN = os.environ.get("HUB_TOKEN", "")
@@ -156,7 +168,7 @@ def public_result(binding: dict) -> dict:
     r = binding.get("last_result") or {}
     tested = r.get("tested_base") or ""
     declared = (binding.get("api_base") or "").rstrip("/")
-    verified = (r.get("status") == "completed" and r.get("verdict") == "basic_passed"
+    verified = (r.get("status") == "completed" and r.get("verdict") in MERGEABLE
                 and bool(tested) and tested.rstrip("/") == declared)
     return {
         "status": r.get("status"),
@@ -239,10 +251,37 @@ def get_binding(pr: int) -> dict | None:
     return store["prs"].get(str(pr))
 
 
+VERSION_FILE = Path(os.environ.get("VERSION_FILE",
+                                   Path(__file__).parent / "VERSION"))
+
+
+def hub_version() -> str:
+    """部署时由 scripts/deploy.sh 写入。读不到就报 dev，别假装有版本号。"""
+    try:
+        return VERSION_FILE.read_text(encoding="utf-8").strip() or "dev"
+    except OSError:
+        return "dev"
+
+
+def engine_version() -> str:
+    """从部署的引擎文件里读 MQ_VERSION，用来验证「部署的到底是哪版引擎」。"""
+    try:
+        text = Path(ENGINE_PATH).read_text(encoding="utf-8")
+    except OSError:
+        return ""
+    m = re.search(r'^MQ_VERSION\s*=\s*"([^"]+)"', text, re.M)
+    return m.group(1) if m else ""
+
+
 @app.get("/healthz")
 def healthz():
-    return {"ok": True, "engine": Path(ENGINE_PATH).exists(),
-            "gh_token": bool(GITHUB_TOKEN), "oauth": bool(GITHUB_CLIENT_ID)}
+    # 部署流水线会校验这里的 version / engine_version，所以不要把缺项藏起来。
+    return {"ok": True,
+            "version": hub_version(),
+            "engine": Path(ENGINE_PATH).exists(),
+            "engine_version": engine_version(),
+            "gh_token": bool(GITHUB_TOKEN),
+            "oauth": bool(GITHUB_CLIENT_ID)}
 
 
 @app.post("/api/prs")
@@ -489,7 +528,35 @@ def _load_renderer():
     return mod
 
 
-_INDEX_CACHE = {"key": None, "value": None}
+_PROVIDERS_CACHE = {"key": None, "value": []}
+
+
+def load_providers():
+    """读目录索引。文件缺失时返回空列表（首页会显示「尚未生成」而不是崩掉）。"""
+    p = Path(PROVIDERS_INDEX)
+    try:
+        st = p.stat()
+    except OSError:
+        return []
+    key = (str(p), st.st_mtime, st.st_size)
+    if _PROVIDERS_CACHE["key"] == key:
+        return _PROVIDERS_CACHE["value"]
+    try:
+        doc = json.loads(p.read_text(encoding="utf-8"))
+        items = doc.get("items") or []
+    except (OSError, ValueError):
+        items = []
+    _PROVIDERS_CACHE.update({"key": key, "value": items})
+    return items
+
+
+def error_html(title, detail, hint="", status=404):
+    """统一错误页。以前 404 直接返回 FastAPI 的 {"detail": "..."}，人类看到的是裸 JSON。"""
+    try:
+        body = _load_renderer().error_page(title, detail, hint)
+    except Exception:  # noqa: BLE001  渲染器挂了也不能再挂一次
+        body = f"<h3>{title}</h3><p>{detail}</p><p><a href='/'>返回首页</a></p>"
+    return HTMLResponse(body, status_code=status)
 
 
 def scan_reports():
@@ -523,11 +590,7 @@ def scan_reports():
             "mode": meta.get("mode") or "",
             "engine": doc.get("engine") or "?",
             "verdict": verdict,
-            "tone": {"basic_passed": "ok", "identity_suspect": "err",
-                     "behavior_anomaly": "err", "model_not_found": "err",
-                     "protocol_incompatible": "err",
-                     "endpoint_unreachable": "warn", "auth_rejected": "warn"}
-                    .get(verdict, "info"),
+            "tone": VERDICT_TONE.get(verdict, "info"),
             "n_pass": sum(1 for c in checks if c.get("status") == "PASS"),
             "total": len(checks),
             "url": f"/r/{pr}/{ts}",
@@ -547,7 +610,9 @@ def view_report(pr: int, ts: str):
     safe = Path(ts).name
     jp = REPORTS_DIR / str(pr) / safe / "report.json"
     if not jp.is_file():
-        raise HTTPException(404, "report not found")
+        return error_html("找不到这份报告",
+                          f"PR #{pr} 下没有 {safe} 这个时间点的报告存档。",
+                          "报告可能已被清理，或者链接里的时间戳不完整。")
     return HTMLResponse(_render_report_html(jp))
 
 
@@ -576,7 +641,9 @@ def pr_workspace(pr: int):
 @app.get("/auth/github/callback")
 def oauth_callback(request: Request, code: str = "", state: str = ""):
     if not GITHUB_CLIENT_ID:
-        return HTMLResponse("<h3>OAuth 未配置</h3>", 503)
+        return error_html("OAuth 未配置",
+                          "本站没有启用 GitHub 登录，这不影响查看报告。",
+                          "绑定与登录是可选能力。", status=503)
     req = urllib.request.Request(
         "https://github.com/login/oauth/access_token",
         data=urllib.parse.urlencode({
@@ -587,9 +654,14 @@ def oauth_callback(request: Request, code: str = "", state: str = ""):
         with urllib.request.urlopen(req, timeout=20) as resp:
             tok = json.loads(resp.read()).get("access_token", "")
     except Exception as e:  # noqa: BLE001
-        return HTMLResponse(f"<h3>OAuth 失败</h3><pre>{type(e).__name__}: {e}</pre>", 502)
+        # 异常文本来自上游响应，必须转义后再进 HTML（原来直接拼进 <pre>）
+        return error_html("GitHub 登录失败",
+                          "无法与 GitHub 完成授权换取，请稍后重试。",
+                          f"{type(e).__name__}: {e}", status=502)
     if not tok:
-        return HTMLResponse("<h3>OAuth 失败</h3>", 401)
+        return error_html("GitHub 登录失败",
+                          "GitHub 没有返回访问令牌，可能是授权被取消。",
+                          "可以返回首页继续浏览报告。", status=401)
     req2 = urllib.request.Request("https://api.github.com/user",
                                   headers={"user-agent": "mq-hub/0.2",
                                            "authorization": f"Bearer {tok}"})
@@ -604,7 +676,9 @@ def oauth_callback(request: Request, code: str = "", state: str = ""):
 @app.get("/login/github")
 def login_github():
     if not GITHUB_CLIENT_ID:
-        return HTMLResponse("<h3>OAuth 未配置</h3>", 503)
+        return error_html("OAuth 未配置",
+                          "本站没有启用 GitHub 登录，这不影响查看报告。",
+                          "绑定与登录是可选能力。", status=503)
     return RedirectResponse(
         "https://github.com/login/oauth/authorize?client_id=" + GITHUB_CLIENT_ID +
         "&redirect_uri=" + urllib.parse.quote(f"{BASE_URL}/auth/github/callback") +
@@ -615,7 +689,8 @@ def login_github():
 
 @app.get("/", response_class=HTMLResponse)
 def index():
-    return HTMLResponse(_load_renderer().build_index(scan_reports()))
+    return HTMLResponse(_load_renderer().build_index(
+        scan_reports(), providers=load_providers()))
 
 
 @app.get("/api/me")

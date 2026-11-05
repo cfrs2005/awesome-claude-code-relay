@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MQ 验证报告 — api.demo.example</title>
+<style>
+:root{
+  /* 色彩系统 */
+  --paper:#F4F1EA;      /* 主背景 暖奶油白 */
+  --surface:#EAE5DC;    /* 次背景 / 容器 浅亚麻灰（比底色深） */
+  --ink:#1C1B1A;        /* 近黑墨色，不用纯黑 */
+  --ink-2:#5C5A56;      /* 深岩灰 */
+  --ink-3:#857F74;      /* 三级文字（由次文本推导） */
+  --clay:#D97757;       /* 品牌强调 珊瑚橙 */
+  --clay-soft:#F2E3D9;  /* 强调色的浅底（徽章、警告块） */
+  --moss:#4A6B5D;       /* 辅助强调 复古墨绿（通过） */
+  --warn:#A9532F;       /* 注意 —— 与 clay 区分开，避免「强调」和「警告」同一个色 */
+  --rust:#A6472F;       /* 失败（clay 深阶） */
+  --line:#D6D0C4;       /* 1px 柔和描边 */
+  --line-2:#E2DCD1;     /* 更弱的分隔线（行与行之间） */
+  --code:#E5DFD3;       /* 行内代码底 */
+
+  /* 字体 */
+  --serif:"Instrument Serif","Playfair Display",Georgia,"Songti SC",
+          "SimSun",serif;
+  --sans:Inter,"Plus Jakarta Sans",-apple-system,BlinkMacSystemFont,
+         "Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+  --r:8px;              /* 统一小圆角，最大 8px */
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--paper);color:var(--ink);
+  font:14px/1.75 var(--sans);-webkit-font-smoothing:antialiased;
+  text-rendering:optimizeLegibility}
+.wrap{max-width:1000px;margin:0 auto;padding:0 40px}
+a{color:inherit;text-decoration:none}
+
+.topbar{height:72px}
+.topbar .wrap{height:100%;display:flex;align-items:center;gap:18px}
+.brand{font:400 17px/1 var(--serif);letter-spacing:.01em;display:flex;
+  align-items:center;gap:9px}
+.brand::before{content:"";width:6px;height:6px;border-radius:50%;
+  background:var(--clay)}
+.topbar .nav{margin-left:auto;font-size:12.5px;color:var(--ink-2);
+  display:flex;gap:16px;align-items:center}
+.topbar .nav a:hover{color:var(--clay)}
+.topbar .host{font:12px/1 var(--mono);color:var(--ink-3)}
+
+.verdict{display:grid;grid-template-columns:1fr 250px;gap:56px;align-items:start;
+  padding:32px 0 40px;border-bottom:1px solid var(--line)}
+.pill{display:inline-block;font-size:11.5px;line-height:1;letter-spacing:.03em;
+  padding:6px 10px;border-radius:4px;background:var(--surface);color:var(--ink-2);
+  border:1px solid var(--line);margin-bottom:18px}
+.pill.warn{border-color:#E4C4B5;color:var(--warn);background:var(--clay-soft)}
+.pill.ok{border-color:#BFCFC6;color:#3E5A4D;background:#E4EAE3}
+.pill.err{border-color:#E0BCAF;color:var(--rust);background:#F1DED6}
+h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
+  word-break:break-all}
+.concl{margin:0;color:var(--ink-2);font-size:13.5px;line-height:1.85;max-width:58ch}
+
+.ratio{text-align:right;color:var(--ink-2);font-size:12.5px;line-height:1.5}
+.ratio b{font:400 30px/1 var(--serif);color:var(--ink);margin-right:3px}
+.bar{display:flex;height:3px;overflow:hidden;gap:2px;background:var(--line);
+  margin:14px 0 12px}
+.bar span{display:block;height:100%}
+.bar .ok{background:var(--moss)} .bar .warn{background:var(--clay)}
+.bar .err{background:var(--rust)} .bar .info{background:#C9C3B6}
+.lg{display:flex;gap:14px;justify-content:flex-end;flex-wrap:wrap;
+  font:11px/1 var(--mono);color:var(--ink-3)}
+.lg i{font-style:normal;color:var(--ink-2)}
+
+.meta{display:grid;grid-template-columns:repeat(4,1fr);
+  padding:22px 0 26px;border-bottom:1px solid var(--line)}
+.meta > div{padding-left:20px;border-left:1px solid var(--line);min-width:0}
+.meta > div:first-child{padding-left:0;border-left:0}
+.meta .k{font-size:11px;color:var(--ink-3);margin-bottom:6px;letter-spacing:.02em}
+.meta .v{font:12.5px/1.6 var(--mono);color:var(--ink);word-break:break-all}
+
+.group{padding:36px 0 6px}
+.gh{display:flex;align-items:baseline;gap:14px;padding-bottom:14px;
+  border-bottom:1px solid var(--line)}
+.gh h2{font:400 18px/1.4 var(--serif);margin:0;letter-spacing:.005em}
+.gh .cnt{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+
+.row{display:grid;grid-template-columns:24px 14px 1fr 180px;gap:12px;
+  align-items:start;padding:18px 0;border-bottom:1px solid var(--line-2)}
+.rows .row:last-child{border-bottom:0}
+.idx{font:11.5px/2.1 var(--mono);color:#A29B8E}
+.dot{width:6px;height:6px;border-radius:50%;margin-top:10px}
+.dot.ok{background:var(--moss)} .dot.warn{background:var(--clay)}
+.dot.err{background:var(--rust)} .dot.info{background:#C9C3B6}
+.nm{font-weight:500;font-size:14px;line-height:1.65;letter-spacing:.005em}
+.ds{color:var(--ink-2);font-size:13px;line-height:1.85;margin-top:5px}
+.ds code,.concl code,.repro .note code{font:12px/1 var(--mono);color:var(--ink);
+  background:var(--code);padding:2px 5px;border-radius:3px}
+.rt{text-align:right}
+.sw{font-size:11.5px;line-height:1.4;letter-spacing:.02em}
+.sw.ok{color:var(--moss)} .sw.warn{color:var(--clay)}
+.sw.err{color:var(--rust)} .sw.info{color:var(--ink-3)}
+.mt{font:11px/1.75 var(--mono);color:var(--ink-3);margin-top:5px;word-break:break-all}
+
+.repro{margin-top:44px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:20px 22px}
+.repro .h{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
+.repro .h b{font:400 16px/1.4 var(--serif);font-weight:400}
+.repro .h .t{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+.repro pre{margin:0;font:12px/1.9 var(--mono);color:var(--ink-2);
+  white-space:pre-wrap;word-break:break-all}
+.repro .note{margin-top:14px;font-size:12px;color:var(--ink-3);line-height:1.8}
+
+details{margin-top:36px;border-top:1px solid var(--line);padding-top:16px}
+summary{cursor:pointer;font-size:12.5px;color:var(--ink-2);list-style:none;
+  display:flex;align-items:center;gap:9px}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"B8";color:var(--ink-3);font-size:10px}
+details[open] summary::before{content:"BE"}
+summary .f{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+pre.ev{margin:14px 0 0;font:11.5px/1.85 var(--mono);color:var(--ink-2);
+  white-space:pre-wrap;word-break:break-all}
+
+footer{margin:48px 0 56px;padding-top:18px;border-top:1px solid var(--line);
+  display:flex;justify-content:space-between;gap:32px;
+  font-size:11.5px;color:var(--ink-3);line-height:1.9}
+footer .r{text-align:right;font-family:var(--mono)}
+
+@media(max-width:820px){
+  .wrap{padding:0 24px}
+  .verdict{grid-template-columns:1fr;gap:24px}
+  .ratio{text-align:left}
+  .lg{justify-content:flex-start}
+  .meta{grid-template-columns:repeat(2,1fr);row-gap:18px}
+  .meta > div:nth-child(3){padding-left:0;border-left:0}
+  .row{grid-template-columns:20px 12px 1fr}
+  .rt{grid-column:3;text-align:left}
+  footer{display:block}
+  footer .r{text-align:left;margin-top:10px}
+}
+
+@media(max-width:640px){
+  .wrap{padding:0 18px}
+  .topbar{height:60px}
+  .topbar .nav{gap:12px;font-size:12px}
+  h1{font-size:26px}
+  .verdict{padding:22px 0 28px;gap:16px}
+  .ratio b{font-size:24px}
+  .meta{grid-template-columns:1fr;row-gap:14px;padding:18px 0 20px}
+  .meta > div{padding-left:0;border-left:0}
+  .group{padding:26px 0 4px}
+  .row{grid-template-columns:16px 10px 1fr;gap:9px;padding:15px 0}
+  .rt{grid-column:3}
+  .repro{margin-top:30px;padding:15px 16px}
+  .repro pre{font-size:11px}
+  footer{margin:36px 0 40px}
+}
+</style></head><body>
+
+<header class="topbar"><div class="wrap">
+  <a class="brand" href="/">RelayQuality</a>
+  <span class="nav"><a href="/">目录与报告</a>
+    <a href="https://github.com/cfrs2005/awesome-claude-code-relay" rel="noopener">仓库 ↗</a>
+    <a href="https://github.com/cfrs2005/awesome-claude-code-relay/blob/main/docs/verification-design.md" rel="noopener">验证说明 ↗</a></span>
+  <span class="host">api.demo.example</span>
+</div></header>
+
+<main class="wrap">
+
+<section class="verdict">
+  <div>
+    <span class="pill ok">通过</span>
+    <h1>api.demo.example</h1>
+    <p class="concl">协议与行为特征通过；这不代表模型为真，也不代表服务商不接触请求明文。</p>
+  </div>
+  <div class="ratio">
+    <div><b>9</b> / 11 项通过</div>
+    <div class="bar"><span class="ok" style="width:81.82%"></span><span class="info" style="width:18.18%"></span></div>
+    <div class="lg">
+      <span>通过 <i>9</i></span>
+      <span>注意 <i>0</i></span>
+      <span>失败 <i>0</i></span>
+      <span>信息 <i>2</i></span>
+    </div>
+  </div>
+</section>
+
+<section class="meta">
+  <div><div class="k">声明模型</div><div class="v">claude-sonnet-4-5-20250929</div></div>
+  <div><div class="k">实测模型</div><div class="v">claude-sonnet-4-5-20250929</div></div>
+  <div><div class="k">目录构成</div><div class="v">Claude ×2</div></div>
+  <div><div class="k">期望家族</div><div class="v">Claude</div></div>
+</section>
+<section class="group"><div class="gh"><h2>模型目录</h2><span class="cnt">2 项 · 2 通过</span></div><div class="rows">
+<div class="row"><span class="idx">01</span><span class="dot ok"></span><div><div class="nm">模型目录 GET /v1/models</div><div class="ds">声明模型 <code>claude-sonnet-4-5-20250929</code> 在目录中。目录共 2 个模型。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">declared=claude-sonnet-4-5-20250929 · count=2 · families=claude ×2</div></div></div>
+<div class="row"><span class="idx">02</span><span class="dot ok"></span><div><div class="nm">是否提供 claude 系模型</div><div class="ds">目录中 claude 系模型 2 个。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">claude=2</div></div></div>
+</div></section>
+<section class="group"><div class="gh"><h2>端点可用性</h2><span class="cnt">1 项 · 1 通过</span></div><div class="rows">
+<div class="row"><span class="idx">03</span><span class="dot ok"></span><div><div class="nm">Messages API 非流式调用</div><div class="ds">HTTP 200，响应结构符合规范。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">latency_s=0.42</div></div></div>
+</div></section>
+<section class="group"><div class="gh"><h2>协议兼容性</h2><span class="cnt">4 项 · 3 通过</span></div><div class="rows">
+<div class="row"><span class="idx">04</span><span class="dot ok"></span><div><div class="nm">SSE 流式响应</div><div class="ds">事件序列完整，0 条畸形行。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">ttft_ms=310 · tps=46</div></div></div>
+<div class="row"><span class="idx">05</span><span class="dot ok"></span><div><div class="nm">system 指令透传</div><div class="ds">system 生效（PONG）。</div></div><div class="rt"><div class="sw ok">通过</div></div></div>
+<div class="row"><span class="idx">06</span><span class="dot ok"></span><div><div class="nm">Tool use 闭环</div><div class="ds">tool_use → tool_result 闭环正常。</div></div><div class="rt"><div class="sw ok">通过</div></div></div>
+<div class="row"><span class="idx">07</span><span class="dot info"></span><div><div class="nm">Extended thinking 与签名回放</div><div class="ds">未提供 --official-key，签名回验跳过。</div></div><div class="rt"><div class="sw info">信息</div></div></div>
+</div></section>
+<section class="group"><div class="gh"><h2>身份证据</h2><span class="cnt">3 项 · 2 通过</span></div><div class="rows">
+<div class="row"><span class="idx">08</span><span class="dot ok"></span><div><div class="nm">响应标识前缀</div><div class="ds"><code>msg_</code> / <code>toolu_</code> 前缀符合官方约定。</div></div><div class="rt"><div class="sw ok">通过</div></div></div>
+<div class="row"><span class="idx">09</span><span class="dot ok"></span><div><div class="nm">token 计数增量</div><div class="ds">长 prompt 增量 84，落在 [45, 140]。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">delta=84</div></div></div>
+<div class="row"><span class="idx">10</span><span class="dot info"></span><div><div class="nm">count_tokens 指纹</div><div class="ds">端点未提供 count_tokens，记为可选能力缺失。</div></div><div class="rt"><div class="sw info">信息</div></div></div>
+</div></section>
+<section class="group"><div class="gh"><h2>稳定性与性能</h2><span class="cnt">1 项 · 1 通过</span></div><div class="rows">
+<div class="row"><span class="idx">11</span><span class="dot ok"></span><div><div class="nm">稳定性（8 次重复调用）</div><div class="ds">成功率 8/8。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">success_rate=1.0 · latency_p50_s=0.41 · latency_p95_s=0.55</div></div></div>
+</div></section>
+<section class="repro"><div class="h"><b>本地复现</b><span class="t">同一套探针 · 不依赖本页</span></div><pre>curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
+python3 mq.py --base-url https://api.demo.example --key sk-your-key \
+  --model claude-sonnet-4-5-20250929 --mode standard --expect-family claude</pre><div class="note">Key 只留在你自己的机器上，本页与任何服务端都不接收。要用官方 Key 做签名回验，加 <code>--official-base-url</code> 与 <code>--official-key</code>。</div></section>
+<details><summary>原始证据（已脱敏）<span class="f">2 条 · 11 项检查</span></summary><pre class="ev">claude-haiku-4-5-20251001
+claude-sonnet-4-5-20250929</pre></details>
+
+<footer>
+  <div>收录 ≠ 推荐，验证通过 ≠ 安全。本报告只描述 2026-11-05T00:00:00Z 这一次探针观测到的结果，
+    不能证明服务商不留存、不转卖请求数据，也不能证明底层模型来自官方。</div>
+  <div class="r">引擎 0.2.0 · standard 模式<br>
+    11 项检查</div>
+</footer>
+</main></body></html>

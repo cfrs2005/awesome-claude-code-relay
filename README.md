@@ -1,7 +1,7 @@
 # awesome-claude-code-relay
 
-[![Providers](https://img.shields.io/badge/服务商-30-blue)](#-服务商目录)
-[![MQ 引擎](https://img.shields.io/badge/MQ%20引擎-v0.1.0-purple)](mq/)
+[![Providers](https://img.shields.io/badge/服务商-31-blue)](#-服务商目录)
+[![MQ 引擎](https://img.shields.io/badge/MQ%20引擎-v0.2.0-purple)](mq/)
 [![无 AFF](https://img.shields.io/badge/定位-无AFF中立目录-green)](#️-原则)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
@@ -20,6 +20,21 @@
 - 收录条目来自社区自荐，历史上从未做过统一测试，`未验证` 是诚实的默认状态。
 
 ---
+
+## 🌐 在线站点
+
+**https://mq.80aj.com** —— 服务商目录 + 每份验证报告（完整探针结果与复现命令）。
+目录状态由合并后的报告自动回写；报告由提交者在本机跑出，站点只存档与呈现。
+
+引擎分发按 tag 固定（当前 `v0.2.0`），不跟随 `main`——报告里写的 `engine` 才算数。
+
+## 🚀 发布与部署
+
+| 环节 | 做法 |
+|---|---|
+| 改动校验 | `ci.yml`：91 个用例（含引擎端到端、门禁状态机、渲染快照、workflow 语法）+ ruff + README 漂移检查 |
+| 发布 | 打 tag `v*` → `deploy.yml` 打包（Hub + 契约层 + 渲染器 + 引擎副本 + 字体 + 目录索引）→ 上传 → 重启 → 校验 healthz 版本一致，不一致自动回滚 |
+| 回滚 | 部署脚本保留上一版，健康检查不过即自动回退；也可手动 `workflow_dispatch` 重跑 |
 
 ## 📋 服务商目录
 
@@ -89,7 +104,7 @@
 用你自己的 Key 在本地跑，Key 不离开你的机器，零信任要求：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/main/mq/mq.py -o mq.py
+curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
 python3 mq.py --base-url https://api.example.com --key sk-your-key
 ```
 
@@ -112,7 +127,7 @@ python3 mq.py --base-url https://api.example.com --key sk-your-key
 2. 在**你自己的机器**上跑一次（Key 不离开本机）：
 
    ```bash
-   curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/main/mq/mq.py -o mq.py
+   curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
    python3 mq.py --base-url <你条目的 api_base> --key sk-your-key \
      --model <你声明的模型> --json report.json --markdown report.md
    ```

@@ -7,6 +7,11 @@ name: Sync README
 #
 # 支持手动触发：回写步骤被意外打断、或只改了 workflow 的合并没触发本工作流时，
 # 用 workflow_dispatch 指定 PR 号补跑一次。
+#
+# 设计约束（2026-11 修订）：回写失败必须让 job 变红。
+# 此前 PR 号没有真正传进子进程，`gh pr view ""` 静默失败 → 状态丢、job 仍绿，
+# 目录长期停在「未验证」。现在由 scripts/writeback.py 用退出码表达三态：
+#   0 = 已回写　2 = 确认无需回写　3 = 应当回写但做不到（判红）
 
 on:
   push:
@@ -22,12 +27,18 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-readme
+  cancel-in-progress: false
 
 jobs:
   sync:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+      REPO: ${{ github.repository }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,82 +49,63 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Apply verification result from PR report (post-merge fixup)
+      - name: Resolve PR number
+        id: pr
         env:
-          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ inputs.pr }}
+          INPUT_PR: ${{ inputs.pr }}
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           set -euo pipefail
-          pr="${{ inputs.pr }}"
-          if [ -z "$pr" ]; then
-            msg="${{ github.event.head_commit.message }}"
-            pr=$(printf '%s' "$msg" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          number="$(printf '%s' "${INPUT_PR:-}" | tr -dc '0-9')"
+          if [ -z "$number" ]; then
+            number="$(printf '%s' "${COMMIT_MSG:-}" \
+              | grep -oE '#[0-9]+' | head -1 | tr -dc '0-9' || true)"
           fi
-          if [ -z "$pr" ]; then
-            echo "提交信息里没有 PR 号，跳过验证回写"
-            exit 0
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "PR_NUMBER=$number" >> "$GITHUB_ENV"
+          echo "解出 PR 号：${number:-（无）}"
+
+      - name: Apply verification result from PR report (post-merge fixup)
+        id: writeback
+        continue-on-error: true
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          set -euo pipefail
+          args=(--repo "$REPO" --inputs-pr "${PR_NUMBER:-}" --commit-msg "${COMMIT_MSG:-}")
+          if [ "$IS_DISPATCH" = "true" ]; then
+            args+=(--strict)
           fi
-          export PR_URL="https://github.com/$REPO/pull/$pr"
+          python3 scripts/writeback.py "${args[@]}"
 
-          # 合并后从 PR 正文 + 评论里取最新一份 MQ 报告的机器可读块
-          {
-            gh api "repos/$REPO/pulls/$pr" --jq '.body // ""' || true
-            echo
-            gh api --paginate "repos/$REPO/issues/$pr/comments" --jq '.[].body' || true
-          } > /tmp/pr_text.txt
-
-          python3 - <<'EOF'
-          import base64, json, os, pathlib, re, subprocess, sys
-
-          pr_url = os.environ.get("PR_URL", "")
-          text = pathlib.Path("/tmp/pr_text.txt").read_text(encoding="utf-8", errors="replace")
-          reports = []
-          for b in re.findall(r"<!--MQ-REPORT:([A-Za-z0-9+/=]+)-->", text):
-              try:
-                  d = json.loads(base64.b64decode(b, validate=True).decode("utf-8"))
-              except Exception:
-                  continue
-              if isinstance(d, dict) and d.get("verdict") and d.get("host"):
-                  reports.append(d)
-          if not reports:
-              print("PR 里没有可解析的 MQ 报告，跳过验证回写")
-              sys.exit(0)
-
-          r = max(reports, key=lambda d: d.get("tested_at") or "")
-          # 按 PR 的变更文件集合定位目标条目，而不是 HEAD~1..HEAD。
-          # 手动触发时没有新提交，diff 方式会拿不到任何文件。
-          files = subprocess.run(
-              ["gh", "pr", "view", os.environ.get("PR_NUMBER", "0"),
-               "--repo", os.environ.get("REPO", ""), "--json", "files",
-               "--jq", ".files[].path"],
-              capture_output=True, text=True).stdout.split()
-          target = next((f for f in files if f.endswith(".json") and f != "providers/schema.json"), None)
-          if not target:
-              print("未能在本次提交中定位 providers/*.json，跳过")
-              sys.exit(0)
-
-          verdict = r["verdict"]
-          if verdict == "evidence_insufficient":
-              verdict = "inconclusive"
-          subprocess.run(["python3", "scripts/update_verification.py", target,
-                          "--status", verdict,
-                          "--engine", r.get("engine") or "",
-                          "--report-url", pr_url], check=True)
-          print(f"回写 {target}: {verdict}（报告 {r.get('report_id')} / {r.get('tested_at')}）")
-          EOF
+      - name: Fail visibly when writeback could not run
+        if: steps.writeback.outcome == 'failure'
+        run: |
+          set -euo pipefail
+          echo "::error::验证回写失败：见上方日志与 Job Summary。目录状态未更新，不要当作已完成。"
+          if [ -n "${PR_NUMBER:-}" ]; then
+            body="$(printf '%s\n\n%s\n' \
+              "⚠️ 合并后的状态回写没有成功，目录里该条目仍显示为未验证。" \
+              "这不是提交者的问题，是维护侧的流水线故障。维护者可从 Actions 的 Sync README 运行记录看到原因；修复后用 workflow_dispatch 指定 PR #${PR_NUMBER} 补跑。")"
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$body" || true
+          fi
+          exit 1
 
       - name: Rebuild providers table
         run: python3 scripts/build_readme.py
 
       - name: Commit if changed
         run: |
+          set -euo pipefail
           git config user.name "mq-bot"
           git config user.email "mq-bot@users.noreply.github.com"
           if git diff --quiet; then
             echo "无变更"
-          else
-            git add -A
-            git commit -m "chore: sync README + verification status [skip ci]"
-            git push
+            exit 0
           fi
+          git add -A
+          git commit -m "chore: sync README + verification status [skip ci]"
+          # 连续合并两个 PR 时远端可能已前进，先 rebase 再推，避免直接冲突退出。
+          git pull --rebase --autostash origin main
+          git push

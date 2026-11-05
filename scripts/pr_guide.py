@@ -15,6 +15,9 @@ import pathlib
 import subprocess
 import sys
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent.parent / "mq"))
+import contracts  # noqa: E402
+
 
 def git(*args):
     return subprocess.run(["git", *args], capture_output=True, text=True, check=True).stdout
@@ -66,14 +69,13 @@ def main():
     L.append("### 1. 在你自己的机器上跑一次")
     L.append("")
     L.append("```bash")
-    L.append("curl -fsSL https://raw.githubusercontent.com/cfrs2005/"
-             "awesome-claude-code-relay/main/mq/mq.py -o mq.py")
+    L.append(f"curl -fsSL {contracts.ENGINE_URL} -o mq.py")
     L.append(f"python3 mq.py --base-url {shown_base} --key sk-your-key \\")
     L.append(f"  --model {model} --mode standard --expect-family {family} \\")
     L.append("  --json report.json --markdown report.md")
     L.append("```")
     L.append("")
-    L.append("只依赖 Python 3.8+ 标准库，Key 不离开你的机器。")
+    L.append("只依赖 Python 3.9+ 标准库，Key 不离开你的机器。")
     L.append("")
     L.append("想先看看花多少钱，可以加 `--mode quick` 跑一遍粗测（跳过大半探针）；"
              "但**收录只认 `standard` 及以上**，quick 报告不会被自动合并。")

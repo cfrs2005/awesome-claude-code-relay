@@ -1,0 +1,76 @@
+name: CI
+
+# 全仓库的测试与静态检查。
+# 与 providers-check 的分工：providers-check 只管「这个 PR 的条目能不能合并」，
+# CI 管「代码本身有没有被改坏」。改动 workflow / 脚本时，CI 是唯一的安全网。
+#
+# 为什么要在 CI 里跑 bash -n：历史上的 heredoc EOF 语法错误连修两个提交才修对，
+# 而那两次都是直接改 main 上的 workflow —— 没有任何本地手段能提前发现。
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.11"]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Engine self-test (stdlib only)
+        run: python3 mq/mq.py --self-test
+      - name: Pytest
+        run: pytest -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dev dependencies
+        run: pip install -r requirements-dev.txt
+      - name: Ruff
+        run: ruff check .
+      - name: Byte-compile entry points
+        # Hub 需要 3.10+（用了 `X | None` 注解），所以放在 3.11 这个 job 里；
+        # 引擎与脚本的 3.9 兼容性由上面的矩阵保证。
+        run: python -m py_compile mq/mq.py mq/hub/app.py scripts/*.py tests/*.py
+
+  readme-drift:
+    # README 的目录表与 badge 由脚本生成，手改会造成静默漂移。
+    # 这里只验证「重新生成的产物与仓库里的一致」，不一致就说明有人手改了。
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Rebuild README and compare
+        run: |
+          set -euo pipefail
+          python3 scripts/build_readme.py
+          if ! git diff --quiet -- README.md; then
+            echo "::error::README 目录表/badge 与 providers/*.json 不一致。请运行 python3 scripts/build_readme.py 并提交结果。"
+            git diff -- README.md
+            exit 1
+          fi

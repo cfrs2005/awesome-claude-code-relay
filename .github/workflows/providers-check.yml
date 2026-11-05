@@ -147,7 +147,7 @@ jobs:
           echo "mq-state=$state" >> "$GITHUB_OUTPUT"
           echo "报告核验状态: $state"
           if [ "$rc" != "0" ]; then
-            echo "::warning::MQ 报告核验未通过（state=$state），本 PR 不会自动合并"
+            echo "::warning::MQ 报告核验未通过（state=${state}），本 PR 不会自动合并"
           fi
           exit 0
 
@@ -171,32 +171,46 @@ jobs:
           MQ_STATE: ${{ steps.mq.outputs.mq-state }}
         run: |
           set -euo pipefail
+          all_ok=""
           if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ] \
              && { [ "$MQ_STATE" = "ok" ] || [ "$MQ_STATE" = "manual" ] \
                   || [ "$MQ_STATE" = "not_applicable" ]; }; then
-            if [ "$MQ_STATE" = "manual" ]; then
-              body="✅ **可以合并**（mq-manual：转人工）
+            all_ok=1
+          fi
+
+          if [ -n "$all_ok" ]; then
+            case "$MQ_STATE" in
+              ok)
+                body="✅ **全部通过，正在自动合并**
+          - 条目校验、Watch 检查、MQ 报告核验均通过" ;;
+              manual)
+                body="✅ **可以合并**（mq-manual：转人工）
           - 条目校验、Watch 检查通过；MQ 报告门禁已由维护者跳过
-          - 请维护者手动合并"
-            else
-              body="✅ **全部通过，正在自动合并**
-          - 条目校验、Watch 检查、MQ 报告核验均通过"
-            fi
+          - 请维护者手动合并" ;;
+              *)
+                # 不涉及收录的 PR（只改 workflow/脚本）按仓库规则转人工，不会被自动合并。
+                body="✅ **可以合并**（转人工审查）
+          - 本 PR 未变更 providers/*.json，MQ 报告门禁不适用
+          - 涉及流程/脚本的变更由维护者审查后手动合并" ;;
+            esac
           else
             reason=""
             [ "$VALIDATED" != "success" ] && reason="${reason}条目校验未通过；"
             [ "$WATCHED" != "true" ] && reason="${reason}提交者未 Watch 项目；"
             case "$MQ_STATE" in
-              missing)         reason="${reason}PR 里还没有 MQ 测试报告；" ;;
+              missing)          reason="${reason}PR 里还没有 MQ 测试报告；" ;;
               no_declared_base) reason="${reason}条目缺少 api_base；" ;;
-              host_mismatch)   reason="${reason}报告测的端点与条目声明的 api_base 不一致；" ;;
-              stale)           reason="${reason}MQ 报告已过期，请重跑；" ;;
-              retest)          reason="${reason}上次测试没有做成，请重跑；" ;;
-              failed)          reason="${reason}MQ 报告结论不通过；" ;;
-              bad_timestamp)   reason="${reason}报告时间戳异常；" ;;
+              host_mismatch)    reason="${reason}报告测的端点与条目声明的 api_base 不一致；" ;;
+              stale)            reason="${reason}MQ 报告已过期，请重跑；" ;;
+              retest)           reason="${reason}上次测试没有做成，请重跑；" ;;
+              failed)           reason="${reason}MQ 报告结论不通过；" ;;
+              bad_timestamp)    reason="${reason}报告时间戳异常；" ;;
+              family_mismatch)  reason="${reason}报告的模型家族与条目标注的 family 不一致；" ;;
+              mode_too_small)   reason="${reason}报告档位太低（quick 模式不能作为收录依据）；" ;;
+              engine_too_old)   reason="${reason}报告由过旧版本的引擎生成，请用当前版本重跑；" ;;
               ok|not_applicable) ;;   # 门禁已过或本 PR 不涉及收录，不该出现在失败文案里
-              ""|manual)       ;;
-              *)               reason="${reason}MQ 报告核验异常（$MQ_STATE）；" ;;
+              ""|manual)        ;;
+              *)                reason="${reason}MQ 报告核验异常（${MQ_STATE}）；" ;;
             esac
             body="⏳ **暂不合并**：${reason:-未知原因}
 
@@ -219,6 +233,9 @@ jobs:
 
       # 直接 squash 合并（分支保护仍生效：required check 由本次运行满足）
       # 用 MQ_BOT_TOKEN（PAT）而非 GITHUB_TOKEN：GITHUB_TOKEN 的合并不会触发 sync-readme 等后续 workflow
+      #
+      # 失败必须判红：此前 merge 失败只打 ::warning，job 仍是绿的，
+      # 于是「所有检查都过了、但没合并」这种状态在 Actions 里看不出来。
       - name: Merge PR (squash)
         if: >
           steps.validate.outcome == 'success' &&
@@ -228,5 +245,18 @@ jobs:
           GH_TOKEN: ${{ env.PR_TOKEN }}
         run: |
           set -euo pipefail
-          gh pr merge "$PR_NUMBER" --squash \
-            || echo "::warning::合并失败（可能存在分支保护的其他要求），请维护者手动合并"
+          state=$(gh pr view "$PR_NUMBER" --repo "$REPO" --json state --jq .state)
+          if [ "$state" = "MERGED" ]; then
+            echo "PR 已是合并状态，无需重复合并"
+            exit 0
+          fi
+          for attempt in 1 2 3; do
+            if gh pr merge "$PR_NUMBER" --repo "$REPO" --squash; then
+              echo "✅ 已 squash 合并"
+              exit 0
+            fi
+            echo "第 $attempt 次 squash 合并失败，5 秒后重试"
+            [ "$attempt" -lt 3 ] && sleep 5
+          done
+          echo "::error::自动合并连续 3 次失败。该 PR 已通过全部确定性校验，需要维护者手动 squash 合并（不要让它停在「检查通过但未合并」的状态）。"
+          exit 1

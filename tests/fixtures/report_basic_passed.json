@@ -1,0 +1,162 @@
+{
+  "engine": "0.2.0",
+  "meta": {
+    "base_url": "https://api.demo.example",
+    "host": "api.demo.example",
+    "model": "claude-sonnet-4-5-20250929",
+    "requested_model": "claude-sonnet-4-5-20250929",
+    "ts": "2026-11-05T00:00:00Z",
+    "mode": "standard",
+    "expect_family": "claude"
+  },
+  "verdict": {
+    "label": "basic_passed",
+    "detail": "协议与行为特征通过；这不代表模型为真，也不代表服务商不接触请求明文。"
+  },
+  "catalog": {
+    "ids": [
+      "claude-haiku-4-5-20251001",
+      "claude-sonnet-4-5-20250929"
+    ],
+    "families": {
+      "claude": 2
+    },
+    "available": true
+  },
+  "declared_model_found": true,
+  "substituted": false,
+  "checks": [
+    {
+      "id": "models",
+      "group": "catalog",
+      "title": "模型目录 GET /v1/models",
+      "status": "PASS",
+      "detail": "声明模型 `claude-sonnet-4-5-20250929` 在目录中。目录共 2 个模型。",
+      "metrics": {
+        "declared": "claude-sonnet-4-5-20250929",
+        "count": 2,
+        "families": {
+          "claude": 2
+        }
+      },
+      "evidence": [
+        "claude-haiku-4-5-20251001",
+        "claude-sonnet-4-5-20250929"
+      ],
+      "code": 200
+    },
+    {
+      "id": "family_expect",
+      "group": "catalog",
+      "title": "是否提供 claude 系模型",
+      "status": "PASS",
+      "detail": "目录中 claude 系模型 2 个。",
+      "metrics": {
+        "claude": 2
+      },
+      "evidence": [],
+      "code": null
+    },
+    {
+      "id": "basic",
+      "group": "availability",
+      "title": "Messages API 非流式调用",
+      "status": "PASS",
+      "detail": "HTTP 200，响应结构符合规范。",
+      "metrics": {
+        "latency_s": 0.42
+      },
+      "evidence": [],
+      "code": 200
+    },
+    {
+      "id": "stream",
+      "group": "protocol",
+      "title": "SSE 流式响应",
+      "status": "PASS",
+      "detail": "事件序列完整，0 条畸形行。",
+      "metrics": {
+        "ttft_ms": 310,
+        "tps": 46
+      },
+      "evidence": [],
+      "code": 200
+    },
+    {
+      "id": "system",
+      "group": "protocol",
+      "title": "system 指令透传",
+      "status": "PASS",
+      "detail": "system 生效（PONG）。",
+      "metrics": {},
+      "evidence": [],
+      "code": 200
+    },
+    {
+      "id": "tools",
+      "group": "protocol",
+      "title": "Tool use 闭环",
+      "status": "PASS",
+      "detail": "tool_use → tool_result 闭环正常。",
+      "metrics": {},
+      "evidence": [],
+      "code": 200
+    },
+    {
+      "id": "thinking",
+      "group": "protocol",
+      "title": "Extended thinking 与签名回放",
+      "status": "INFO",
+      "detail": "未提供 --official-key，签名回验跳过。",
+      "metrics": {},
+      "evidence": [],
+      "code": null
+    },
+    {
+      "id": "message_id",
+      "group": "identity",
+      "title": "响应标识前缀",
+      "status": "PASS",
+      "detail": "`msg_` / `toolu_` 前缀符合官方约定。",
+      "metrics": {},
+      "evidence": [],
+      "code": null
+    },
+    {
+      "id": "token_usage",
+      "group": "identity",
+      "title": "token 计数增量",
+      "status": "PASS",
+      "detail": "长 prompt 增量 84，落在 [45, 140]。",
+      "metrics": {
+        "delta": 84
+      },
+      "evidence": [],
+      "code": null
+    },
+    {
+      "id": "count_tokens",
+      "group": "identity",
+      "title": "count_tokens 指纹",
+      "status": "INFO",
+      "detail": "端点未提供 count_tokens，记为可选能力缺失。",
+      "metrics": {},
+      "evidence": [],
+      "code": 404
+    },
+    {
+      "id": "stability",
+      "group": "stability",
+      "title": "稳定性（8 次重复调用）",
+      "status": "PASS",
+      "detail": "成功率 8/8。",
+      "metrics": {
+        "success_rate": 1.0,
+        "latency_p50_s": 0.41,
+        "latency_p95_s": 0.55
+      },
+      "evidence": [],
+      "code": null
+    }
+  ]
+}

@@ -7,11 +7,11 @@
 用**你自己的 Key** 在本地跑，Key 不出你的机器：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/main/mq/mq.py -o mq.py
+curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
 python3 mq.py --base-url https://api.example.com --key sk-your-key
 ```
 
-只依赖 Python 3.8+ 标准库，无第三方依赖。引擎只访问 `--base-url`（及可选的 `--official-base-url`）两个地址。
+只依赖 Python 3.9+ 标准库，无第三方依赖。引擎只访问 `--base-url`（及可选的 `--official-base-url`）两个地址。
 
 带官方对照（推荐，tokenizer 计数对照是目前最强的换壳证据）：
 
