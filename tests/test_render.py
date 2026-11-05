@@ -46,15 +46,24 @@ def test_snapshot_is_stable(render):
         "报告页输出与快照不一致。若是有意的样式改动，删除快照后重跑一次以重新生成。")
 
 
-def test_no_external_requests_and_no_js(render):
-    """硬约束：字体自托管、无 CDN、无 JS。普通 <a> 外链不算外部资源。"""
+def test_no_external_requests(render):
+    """硬约束：字体自托管、无 CDN、无外部脚本。普通 <a> 外链不算外部资源。"""
     html = render.build(_doc())
-    assert "<script" not in html, "报告页不允许引入 JS"
     assert not re.search(r'\bsrc="https?://', html), "不允许外部资源引用"
+    assert not re.search(r'<script[^>]+src=', html), "不允许外部脚本"
     assert "<link" not in html, "不允许外链样式表/字体"
     assert "url(http" not in html
     assert "cdn." not in html
     assert "googleapis" not in html
+
+
+def test_only_inline_copy_script(render):
+    """唯一允许的脚本是复制按钮；它不能引入任何网络请求。"""
+    html = render.build(_doc())
+    assert html.count("<script") == 1
+    assert "fetch(" not in html and "XMLHttpRequest" not in html
+    assert "navigator.clipboard" in html
+    assert "data-copy" in html
 
 
 def test_untrusted_fields_are_escaped(render):
@@ -94,7 +103,6 @@ def test_index_renders_entries_and_escapes(render):
     assert "api.demo.example" in html
     assert "<b>evil</b>" not in html
     assert "<script>x</script>" not in html
-    assert "<script" not in html
 
 
 def test_index_empty_state_guides_next_step(render):

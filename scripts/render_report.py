@@ -222,6 +222,12 @@ h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
 .repro .h{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
 .repro .h b{font:400 16px/1.4 var(--serif);font-weight:400}
 .repro .h .t{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+/* 唯一的交互元素：复制命令。没有按钮也不用 JS 时，命令仍可手动选中。 */
+.cpy{font:11px/1 var(--sans);color:var(--ink-2);background:transparent;
+  border:1px solid var(--line);border-radius:4px;padding:5px 9px;cursor:pointer;
+  transition:color .12s,border-color .12s}
+.cpy:hover{color:var(--clay);border-color:var(--clay)}
+.cpy[data-done]{color:var(--moss);border-color:var(--moss)}
 .repro pre{margin:0;font:12px/1.9 var(--mono);color:var(--ink-2);
   white-space:pre-wrap;word-break:break-all}
 .repro .note{margin-top:14px;font-size:12px;color:var(--ink-3);line-height:1.8}
@@ -375,6 +381,38 @@ def _provider_rows(providers):
     return "".join(out)
 
 
+COPY_JS = """
+<script>
+/* 全站唯一的脚本：复制命令。去掉它页面依然可读，只是要手动选中。 */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-copy]');
+  if (!b) return;
+  var box = b.closest('.repro') || b.closest('.cmd');
+  var pre = box && box.querySelector('pre');
+  if (!pre) return;
+  var flash = function () {
+    b.textContent = '已复制';
+    b.setAttribute('data-done', '');
+    setTimeout(function () {
+      b.textContent = '复制命令';
+      b.removeAttribute('data-done');
+    }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pre.innerText).then(flash, function () {});
+  } else {
+    /* 非 https 或旧浏览器：退化为全选，手动 Ctrl+C */
+    var r = document.createRange();
+    r.selectNodeContents(pre);
+    var sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+});
+</script>
+"""
+
+
 def build_index(entries, mode="all", providers=None):
     """首页 / 单个 PR 的报告索引。与报告页共用同一套 token 与字体。
 
@@ -474,7 +512,9 @@ def build_index(entries, mode="all", providers=None):
 </section>
 
 <div class="cmd">
-  <div class="h"><b>怎么跑</b><span class="t">Python 3.9+ · 只用标准库</span></div>
+  <div class="h"><b>怎么跑</b>
+    <button class="cpy" type="button" data-copy>复制命令</button>
+    <span class="t">Python 3.9+ · 只用标准库</span></div>
   <pre>%s</pre>
 </div>
 """ % esc(repro_cmd)
@@ -517,7 +557,7 @@ def build_index(entries, mode="all", providers=None):
     不能证明服务商不留存请求、也不能证明底层模型来自官方。</div>
   <div class="r">MQ 引擎 · 报告存档<br>判断留给读者</div>
 </footer>
-</main></body></html>"""
+</main>{COPY_JS}</body></html>"""
 
 
 def error_page(title, detail, hint=""):
@@ -665,6 +705,7 @@ def build(doc):
     O.append(
         '<section class="repro">'
         '<div class="h"><b>本地复现</b>'
+        '<button class="cpy" type="button" data-copy>复制命令</button>'
         '<span class="t">同一套探针 · 不依赖本页</span></div>'
         f'<pre>{esc(repro_cmd)}</pre>'
         '<div class="note">Key 只留在你自己的机器上，本页与任何服务端都不接收。'
@@ -684,7 +725,7 @@ def build(doc):
   <div class="r">引擎 {esc(doc.get('engine'))} · {esc(mode)} 模式<br>
     {idx} 项检查</div>
 </footer>
-</main></body></html>""")
+</main>{COPY_JS}</body></html>""")
     return "".join(O)
 
 

@@ -104,6 +104,12 @@ h1{font:400 34px/1.2 var(--serif);margin:0 0 14px;letter-spacing:-.01em;
 .repro .h{display:flex;align-items:baseline;gap:14px;margin-bottom:14px}
 .repro .h b{font:400 16px/1.4 var(--serif);font-weight:400}
 .repro .h .t{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+/* 唯一的交互元素：复制命令。没有按钮也不用 JS 时，命令仍可手动选中。 */
+.cpy{font:11px/1 var(--sans);color:var(--ink-2);background:transparent;
+  border:1px solid var(--line);border-radius:4px;padding:5px 9px;cursor:pointer;
+  transition:color .12s,border-color .12s}
+.cpy:hover{color:var(--clay);border-color:var(--clay)}
+.cpy[data-done]{color:var(--moss);border-color:var(--moss)}
 .repro pre{margin:0;font:12px/1.9 var(--mono);color:var(--ink-2);
   white-space:pre-wrap;word-break:break-all}
 .repro .note{margin-top:14px;font-size:12px;color:var(--ink-3);line-height:1.8}
@@ -209,7 +215,7 @@ footer .r{text-align:right;font-family:var(--mono)}
 <section class="group"><div class="gh"><h2>稳定性与性能</h2><span class="cnt">1 项 · 1 通过</span></div><div class="rows">
 <div class="row"><span class="idx">11</span><span class="dot ok"></span><div><div class="nm">稳定性（8 次重复调用）</div><div class="ds">成功率 8/8。</div></div><div class="rt"><div class="sw ok">通过</div><div class="mt">success_rate=1.0 · latency_p50_s=0.41 · latency_p95_s=0.55</div></div></div>
 </div></section>
-<section class="repro"><div class="h"><b>本地复现</b><span class="t">同一套探针 · 不依赖本页</span></div><pre>curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
+<section class="repro"><div class="h"><b>本地复现</b><button class="cpy" type="button" data-copy>复制命令</button><span class="t">同一套探针 · 不依赖本页</span></div><pre>curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/v0.2.0/mq/mq.py -o mq.py
 python3 mq.py --base-url https://api.demo.example --key sk-your-key \
   --model claude-sonnet-4-5-20250929 --mode standard --expect-family claude</pre><div class="note">Key 只留在你自己的机器上，本页与任何服务端都不接收。要用官方 Key 做签名回验，加 <code>--official-base-url</code> 与 <code>--official-key</code>。</div></section>
 <details><summary>原始证据（已脱敏）<span class="f">2 条 · 11 项检查</span></summary><pre class="ev">claude-haiku-4-5-20251001
@@ -221,4 +227,33 @@ claude-sonnet-4-5-20250929</pre></details>
   <div class="r">引擎 0.2.0 · standard 模式<br>
     11 项检查</div>
 </footer>
-</main></body></html>
+</main>
+<script>
+/* 全站唯一的脚本：复制命令。去掉它页面依然可读，只是要手动选中。 */
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-copy]');
+  if (!b) return;
+  var box = b.closest('.repro') || b.closest('.cmd');
+  var pre = box && box.querySelector('pre');
+  if (!pre) return;
+  var flash = function () {
+    b.textContent = '已复制';
+    b.setAttribute('data-done', '');
+    setTimeout(function () {
+      b.textContent = '复制命令';
+      b.removeAttribute('data-done');
+    }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(pre.innerText).then(flash, function () {});
+  } else {
+    /* 非 https 或旧浏览器：退化为全选，手动 Ctrl+C */
+    var r = document.createRange();
+    r.selectNodeContents(pre);
+    var sel = getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+  }
+});
+</script>
+</body></html>

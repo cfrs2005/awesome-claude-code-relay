@@ -125,4 +125,6 @@ MIN_ENGINE_VERSION / ENGINE_TAG / ENGINE_URL / version_lt()
   指引评论里已换成 tag 化命令。
 - Hub 布局仍是扁平目录（`/opt/mq-hub/app.py`），没有做 release 目录与原子切换；
   当前靠「备份 + 失败回滚」保证可恢复。要做真正的蓝绿再改 systemd 单元。
-- 复制按钮、暗色主题等交互未做——需要先决定是否允许引入少量原生 JS。
+- 复制按钮已做（用户拍板允许少量原生 JS）：全站唯一脚本，约 25 行，无框架无 CDN，
+  只调用 `navigator.clipboard`，不发任何网络请求，非 https 退化为全选。
+- 暗色主题未做（用户选择维持暖纸单主题）。
