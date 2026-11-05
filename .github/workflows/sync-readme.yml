@@ -1,15 +1,24 @@
 name: Sync README
 
 # providers/** 合并进 main 后：
-#  1. 从合并提交信息解析 PR 号 (#N)，向 Hub 查询验证结果，回写 verification 状态
+#  1. 从 PR 正文/评论里的 MQ 机器可读块取结论，回写 verification 状态
 #  2. 从 providers/*.json 重新生成 README 目录表
 # 使用 MQ_BOT_TOKEN 推送（GITHUB_TOKEN 的推送会绕过/不触发后续 workflow，且可能被分支保护拦截）
+#
+# 支持手动触发：回写步骤被意外打断、或只改了 workflow 的合并没触发本工作流时，
+# 用 workflow_dispatch 指定 PR 号补跑一次。
 
 on:
   push:
     branches: [main]
     paths:
       - "providers/**"
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: "要回写的 PR 号（合并提交里没有 #N 时必填）"
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -35,8 +44,11 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          msg="${{ github.event.head_commit.message }}"
-          pr=$(printf '%s' "$msg" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          pr="${{ inputs.pr }}"
+          if [ -z "$pr" ]; then
+            msg="${{ github.event.head_commit.message }}"
+            pr=$(printf '%s' "$msg" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
+          fi
           if [ -z "$pr" ]; then
             echo "提交信息里没有 PR 号，跳过验证回写"
             exit 0
@@ -83,6 +95,7 @@ jobs:
                           "--engine", r.get("engine") or "",
                           "--report-url", pr_url], check=True)
           print(f"回写 {target}: {verdict}（报告 {r.get('report_id')} / {r.get('tested_at')}）")
+          EOF
           EOF
 
       - name: Rebuild providers table
