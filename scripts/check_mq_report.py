@@ -82,6 +82,14 @@ def changed_provider(base, head):
     return path, entry
 
 
+FAMILY_ALIAS = {"openai": "gpt", "anthropic": "claude", "google": "gemini"}
+
+
+def norm_family(name):
+    n = (name or "claude").strip().lower()
+    return FAMILY_ALIAS.get(n, n)
+
+
 def reg_domain(host):
     """取可注册域，用于容忍 api. 之类的前缀差异。不追求完整 PSL。"""
     host = (host or "").lower().split(":")[0]
@@ -215,7 +223,7 @@ def main():
             res["state"] = "stale"
             res["reasons"].append(
                 f"报告已过期（{res['age_days']:.1f} 天 > {args.max_age_days:g} 天），请重新跑一次")
-        elif (best.get("expect_family") or "claude") != declared_family:
+        elif norm_family(best.get("expect_family")) != norm_family(declared_family):
             res["state"] = "family_mismatch"
             res["reasons"].append(
                 f"报告是按 `{best.get('expect_family')}` 家族测的，"

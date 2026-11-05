@@ -178,6 +178,16 @@ GROUPS = [
 FAMILY_ORDER = ("claude", "gpt", "gemini", "glm", "qwen", "deepseek", "kimi",
                 "moonshot", "llama", "mistral", "grok", "doubao", "ernie")
 
+# 条目里写的是厂商名（openai / anthropic），引擎内部按模型 id 前缀归类（gpt / claude）。
+# 两套词表必须归一，否则 --expect-family openai 会被 argparse 拒掉，
+# 报告与条目也会被判成 family_mismatch。
+FAMILY_ALIAS = {"openai": "gpt", "anthropic": "claude", "google": "gemini"}
+
+
+def normalize_family(name):
+    n = (name or "").strip().lower()
+    return FAMILY_ALIAS.get(n, n)
+
 
 def model_family(model_id):
     """把模型 id 归到家族，用于判断「一个 Claude 中转站是否真的在提供 Claude」。"""
@@ -213,6 +223,7 @@ class Report:
         self.items = []
         self.catalog = {"ids": [], "families": {}, "available": False}
         self.sig_roundtrip_pending = False
+        self.expect_family = "claude"
 
     def get(self, cid):
         for it in self.items:
@@ -587,9 +598,12 @@ def probe_tools(client, model, rep):
         return
     tb = tool_blocks[0]
     if isinstance(tb.get("id"), str) and not tb["id"].startswith("toolu_"):
-        rep.add("tool_id", "tool_use id 前缀", FAIL,
-                f"tool_use 的 id 不是官方约定的 toolu_ 前缀：{tb.get('id')!r}。"
-                "官方只保证这个前缀，不符合通常意味着上游不是 Anthropic 原生实现",
+        level = FAIL if rep.expect_family == "claude" else INFO
+        suffix = ("。官方只保证这个前缀，不符合通常意味着上游不是 Anthropic 原生实现"
+                  if level == FAIL else
+                  f"。本条目标注为 {rep.expect_family} 家族，toolu_ 前缀不适用，不计为缺陷")
+        rep.add("tool_id", "tool_use id 前缀", level,
+                f"tool_use 的 id 不是官方约定的 toolu_ 前缀：{tb.get('id')!r}" + suffix,
                 group="identity")
     ok_name = tb.get("name") == "get_weather"
     city = ((tb.get("input") or {}).get("city") or "")
@@ -825,7 +839,14 @@ def probe_message_id(rep, model, resp):
         if block.get("type") == "server_tool_use" and isinstance(bid, str) \
                 and not bid.startswith("srvtoolu_"):
             violations.append(f"server_tool_use id 前缀不是 srvtoolu_：{bid!r}")
-    if violations:
+    if violations and rep.expect_family != "claude":
+        # msg_ / toolu_ 是 Anthropic 原生实现的约定。条目若声明为其它家族，
+        # 前缀不同属正常——这里只记录，不作为缺陷。
+        rep.add("message_id", "响应标识规范", INFO,
+                "；".join(violations) + f"。前缀不符合 Anthropic 约定，但本条目标注为 "
+                f"{rep.expect_family} 家族，该项不计为缺陷；它说明响应由非 Anthropic 原生实现包装",
+                group="identity")
+    elif violations:
         rep.add("message_id", "响应标识规范", FAIL,
                 "；".join(violations) + "。官方只保证这些前缀，不符合说明响应由非官方实现产出",
                 group="identity")
@@ -1189,7 +1210,8 @@ def main():
                     help="上一次的 report.json，用于对比模型目录变化（检测换上游）")
     ap.add_argument("--mode", default="standard", choices=["quick", "standard", "full"],
                     help="quick=最少请求(约 8 次,省钱) / standard=默认 / full=含重复稳定性采样")
-    ap.add_argument("--expect-family", default="claude", choices=sorted(FAMILY_ORDER) + ["any"],
+    ap.add_argument("--expect-family", default="claude",
+                    choices=sorted(set(FAMILY_ORDER) | set(FAMILY_ALIAS)) + ["any"],
                     help="期望的模型家族。目录里一个都没有时直接判不合格。默认 claude")
     ap.add_argument("--rounds", type=int, default=4, help="一致性采样轮数（full 模式才生效）")
     ap.add_argument("--timeout", type=float, default=60.0)
@@ -1198,6 +1220,7 @@ def main():
     ap.add_argument("--allow-http", action="store_true", help="允许明文 http（仅本地调试）")
     ap.add_argument("--self-test", action="store_true")
     args = ap.parse_args()
+    args.expect_family = normalize_family(args.expect_family)
 
     if args.self_test:
         return self_test()
@@ -1232,6 +1255,7 @@ def main():
                     f"本目录收录的是 {args.expect_family} 中转站，该端点不在此列。",
                     group="catalog")
 
+    rep.expect_family = args.expect_family
     if official is not None:
         rep.sig_roundtrip_pending = True
 
