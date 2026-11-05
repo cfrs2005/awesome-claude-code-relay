@@ -84,7 +84,6 @@ jobs:
                           "--report-url", pr_url], check=True)
           print(f"回写 {target}: {verdict}（报告 {r.get('report_id')} / {r.get('tested_at')}）")
           EOF
-          EOF
 
       - name: Rebuild providers table
         run: python3 scripts/build_readme.py
