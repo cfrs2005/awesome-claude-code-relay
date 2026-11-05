@@ -111,12 +111,42 @@ MIN_ENGINE_VERSION / ENGINE_TAG / ENGINE_URL / version_lt()
   远端 `scripts/deploy.sh`：备份 → 解包 → 重启 → 校验 healthz 的 version
   等于刚部署的版本 → 失败自动回滚。公网 healthz 再确认一次。
 - `healthz` 新增 `version` 与 `engine_version`，让「部署的到底是哪一版」可验证。
-- `scripts/deploy.sh` 在本地用假 `systemctl` / `curl` 演练过两条路径：
-  正常部署成功、healthz 报旧版本时回滚并退出 1。
+- `scripts/deploy.sh` 在本地用假 `sudo` / `systemctl` / `curl` 演练过四条路径：
+  正常部署成功、healthz 报旧版本回滚、restart 被拒回滚、坏包（绝对路径）在动文件前被拒。
 - `requirements-dev.txt` + `pyproject.toml`（ruff / pytest 配置）。
 
 **未配置部署密钥时的行为**：`deploy.yml` 明确打 `::warning::` 并跳过，
 不假装成功。配置 `DEPLOY_HOST` / `DEPLOY_USER` / `DEPLOY_SSH_KEY` 后自动生效。
+
+### 6.1 部署权限模型
+
+最初写成 `ssh ... "sudo bash /tmp/deploy.sh ..."` —— 等于把 root 交给 CI，
+「最小权限」是句空话；脚本又先落在全局可写的 `/tmp`，从上传到执行之间有替换窗口。
+
+现在：**部署账号是普通用户，脚本全程非 root 执行，唯一的提权是一条命令**。
+
+| 主体 | 能做什么 | 不能做什么 |
+|---|---|---|
+| `deploy`（CI 用） | 写代码文件、`engine/`、`fonts/`、`.prev/`；`sudo systemctl restart mq-hub.service` | 读 `env`（凭证，root:600）；改 `data/`（绑定与报告）；执行其它 sudo |
+
+配套的三条硬约束：
+
+1. **不做 `chown -R /opt/mq-hub`**。整目录交给部署账号，`env`（含 `HUB_TOKEN`、
+   `MQ_BOT_TOKEN`）和 `data/`（`prs.json` 决定门禁的 `verified`）会一起交出去 ——
+   等于用「隔离凭据」换「凭据与验证记录可被篡改」。
+2. **备份原子切换**。旧写法「先 rm 再 cp」在拷贝失败时会把上一版备份物理删除，
+   回滚基准被自己毁掉；现在写 `.prev.tmp/`，成功后 `mv`。
+3. **解包、写 VERSION、重启都纳入回滚**。原来只有健康检查失败才回滚，
+   `tar` 失败或 `systemctl` 被拒会留下「文件半新半旧、服务跑着旧代码」，
+   直到下一次重启才炸。
+
+**这套模型挡什么、不挡什么**（必须写清）：
+
+- 挡：CI 凭据泄露后的横向移动、部署脚本 bug 打偏毁系统、误操作。
+- 不挡：**部署账号仍可间接拿到 root** —— 它能改 `app.py`，而服务以 root 运行，
+  `restart` 正是被授权的那条命令。真正的关闸是 systemd `User=`，
+  与「data 迁 `/var/lib/mq-hub`」「env 迁 `/etc`」是同一件事，列为后续专项。
+- 另：`deploy` 仍可删除 `data/`（父目录写权限即可），这是 DoS 面，不是篡改面。
 
 ## 已知边界
 

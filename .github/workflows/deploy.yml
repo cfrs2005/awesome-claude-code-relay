@@ -1,24 +1,46 @@
 name: Deploy Hub
 
-# 打 tag（v*）即发布：打包 Hub 入口 + 契约层 + 渲染器 + 引擎副本 + 字体，
+# 打 tag（v*）即发布：打包 Hub 入口 + 契约层 + 渲染器 + 引擎副本 + 字体 + 目录索引，
 # 上传到服务器，由 scripts/deploy.sh 备份、重启、验证版本，失败自动回滚。
 #
-# 需要的 Secrets（缺任一项会跳过部署并给出 warning，不会假装成功）：
-#   DEPLOY_HOST      服务器地址
-#   DEPLOY_USER      SSH 用户
-#   DEPLOY_SSH_KEY   部署专用私钥（务必是独立密钥，不要用个人密钥）
-#   DEPLOY_PORT      SSH 端口（可选，默认 22）
-#   DEPLOY_KNOWN_HOSTS  可选，服务器 host key（留空则自动 ssh-keyscan）
+# 权限模型
+# --------
+# 部署账号是**普通用户**，脚本全程非 root 执行，唯一的提权是：
+#     sudo systemctl restart mq-hub.service
+# 所以 sudoers 里只放行这一条，且字符串必须与 scripts/deploy.sh 里的调用逐字符一致。
+# 不要再改回 `sudo bash <脚本>` —— 那等于把 root 交给 CI。
 #
-# 首次启用前，服务器侧需一次性准备（见 docs-private/OPERATIONS.md）：
-#   1. 部署用户的 authorized_keys 信任这把密钥
-#   2. sudoers 只放行 `systemctl restart mq-hub`
-#   3. /opt/mq-hub 目录属主可写
+# 需要的 Secrets：
+#   DEPLOY_HOST      服务器地址
+#   DEPLOY_USER      部署账号（普通用户，不要用 root）
+#   DEPLOY_SSH_KEY   专用私钥
+#   DEPLOY_PORT      SSH 端口（可选，默认 22）
+#   DEPLOY_KNOWN_HOSTS  服务器 host key（可选；留空会 ssh-keyscan 兜底，存在首次连接 MITM 窗口）
+#
+# 服务器一次性准备（详见 docs-private/OPERATIONS.md）：
+#   1. useradd -m -s /bin/bash deploy        ← Debian 默认不建家目录，-m 必须
+#   2. install -d -m 700 -o deploy -g deploy /home/deploy/incoming
+#   3. 只把可部署的文件与目录交给 deploy：
+#        app.py contracts.py render_report.py providers-index.json VERSION / engine/ / fonts/
+#      **不要 chown -R /opt/mq-hub** —— env（凭证）与 data/（绑定与报告）必须留 root，
+#      否则「隔离凭据」这件事就不成立了。
+#   4. rm -rf /opt/mq-hub/.prev   （旧备份是 root 属主，删掉让新模型从干净基准开始）
+#   5. echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart mq-hub.service' \
+#        > /etc/sudoers.d/mq-deploy && chmod 440 /etc/sudoers.d/mq-deploy && visudo -c
+#
+# 已知边界：部署账号能改 app.py，而服务以 root 运行，所以它仍可间接拿到 root。
+# 这套模型挡的是「CI 凭据泄露后的横向移动」与「脚本写错误伤系统」，不挡「恶意改代码」。
+# 真正的关闸是 systemd User=，属后续专项。
 
 on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      version:
+        description: "要部署的版本号（形如 v0.2.0）。手动触发必填，不会用分支名兜底"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -32,6 +54,30 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: ver
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          set -euo pipefail
+          version="${INPUT_VERSION:-}"
+          if [ -z "$version" ] && [ "$REF_TYPE" = "tag" ]; then
+            version="$REF_NAME"
+          fi
+          if [ -z "$version" ]; then
+            echo "::error::手动触发必须填 version（形如 v0.2.0）；当前 ref 是 ${REF_TYPE}/${REF_NAME}，不是 tag。"
+            exit 1
+          fi
+          # 版本号会拼进远端命令并写进 VERSION 参与 healthz 比对，先卡死格式
+          if ! printf '%s' "$version" | grep -qE '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::版本号格式不对（应形如 v0.2.0）：${version}"
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "解析出的版本：$version"
 
       - name: Preflight (secrets present?)
         id: pre
@@ -53,7 +99,6 @@ jobs:
         id: build
         run: |
           set -euo pipefail
-          version="${GITHUB_REF_NAME}"
           pkg="build/pkg"
           mkdir -p "$pkg/engine" "$pkg/fonts"
           cp mq/hub/app.py "$pkg/app.py"
@@ -64,7 +109,6 @@ jobs:
           # 目录索引在打包时生成：Hub 运行时不读仓库、不打 GitHub API
           python3 scripts/build_providers_index.py -o "$pkg/providers-index.json"
           tar -czf build/release.tar.gz -C "$pkg" .
-          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "打包内容："
           tar -tzf build/release.tar.gz
 
@@ -86,6 +130,29 @@ jobs:
             ssh-keyscan -p "$PORT" -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null
           fi
 
+      - name: Preflight (server prepared?)
+        if: steps.pre.outputs.configured == 'true'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+          APP_DIR: ${{ vars.DEPLOY_APP_DIR || '/opt/mq-hub' }}
+        run: |
+          set -euo pipefail
+          remote() { ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" "$1"; }
+
+          if ! remote "test -d '$APP_DIR' && test -w '$APP_DIR'"; then
+            echo "::error::服务器侧未完成一次性准备：$APP_DIR 不存在或部署账号不可写。见 docs-private/OPERATIONS.md"
+            exit 1
+          fi
+          # 提前确认提权白名单在场，否则会在「文件已铺开、重启失败」时才发现
+          if ! remote "sudo -n -l /usr/bin/systemctl restart mq-hub.service >/dev/null 2>&1"; then
+            echo "::error::部署账号没有 restart mq-hub.service 的免密授权。请在服务器执行："
+            echo "  echo 'deploy ALL=(root) NOPASSWD: /usr/bin/systemctl restart mq-hub.service' > /etc/sudoers.d/mq-deploy"
+            echo "  chmod 440 /etc/sudoers.d/mq-deploy && visudo -c"
+            exit 1
+          fi
+
       - name: Upload package and deploy script
         if: steps.pre.outputs.configured == 'true'
         env:
@@ -94,9 +161,11 @@ jobs:
           PORT: ${{ secrets.DEPLOY_PORT || '22' }}
         run: |
           set -euo pipefail
+          # 传到部署账号家目录（700），不用 /tmp —— /tmp 全局可写，
+          # 从上传到执行之间存在被替换的窗口。
           scp -i ~/.ssh/id_deploy -P "$PORT" \
             build/release.tar.gz scripts/deploy.sh \
-            "$USER@$HOST:/tmp/"
+            "$USER@$HOST:incoming/"
 
       - name: Run deploy (with rollback)
         if: steps.pre.outputs.configured == 'true'
@@ -104,16 +173,27 @@ jobs:
           HOST: ${{ secrets.DEPLOY_HOST }}
           USER: ${{ secrets.DEPLOY_USER }}
           PORT: ${{ secrets.DEPLOY_PORT || '22' }}
-          VERSION: ${{ steps.build.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
         run: |
           set -euo pipefail
+          # 非 root 执行；脚本内部自己调用唯一那条授权的 sudo
           ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
-            "sudo bash /tmp/deploy.sh /tmp/release.tar.gz '$VERSION'"
+            "bash ~/incoming/deploy.sh ~/incoming/release.tar.gz '$VERSION'"
+
+      - name: Clean up uploaded package
+        if: always() && steps.pre.outputs.configured == 'true'
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+          PORT: ${{ secrets.DEPLOY_PORT || '22' }}
+        run: |
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+            "rm -f ~/incoming/release.tar.gz" || true
 
       - name: Verify public health endpoint
         if: steps.pre.outputs.configured == 'true'
         env:
-          VERSION: ${{ steps.build.outputs.version }}
+          VERSION: ${{ steps.ver.outputs.version }}
           PUBLIC: ${{ vars.PUBLIC_HEALTH_URL || 'https://mq.80aj.com/healthz' }}
         run: |
           set -euo pipefail
