@@ -276,6 +276,168 @@ footer .r{text-align:right;font-family:var(--mono)}
 """
 
 
+INDEX_CSS = """
+.hero{display:grid;grid-template-columns:1fr 220px;gap:56px;align-items:start;
+  padding:36px 0 40px;border-bottom:1px solid var(--line)}
+.hero h1{font:400 38px/1.18 var(--serif);margin:0 0 16px;letter-spacing:-.012em}
+.lede{margin:0;color:var(--ink-2);font-size:14px;line-height:1.9;max-width:50ch}
+.stat{text-align:right;color:var(--ink-2);font-size:12.5px;line-height:1.9}
+.stat b{display:block;font:400 32px/1.1 var(--serif);color:var(--ink);margin-bottom:2px}
+.stat .k{font:11px/1 var(--mono);color:var(--ink-3);margin-top:12px;display:block}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);padding:34px 0 10px;
+  border-bottom:1px solid var(--line)}
+.step{padding:0 26px;border-left:1px solid var(--line)}
+.step:first-child{padding-left:0;border-left:0}
+.step .n{font:11px/1 var(--mono);color:var(--clay);letter-spacing:.06em}
+.step h3{font:400 16.5px/1.5 var(--serif);margin:9px 0 7px}
+.step p{margin:0;font-size:12.5px;color:var(--ink-2);line-height:1.85}
+.step code{font:11.5px/1 var(--mono);background:#E5DFD3;padding:2px 5px;border-radius:3px}
+
+.cmd{margin-top:30px;background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--r);padding:18px 20px}
+.cmd .h{display:flex;align-items:baseline;gap:12px;margin-bottom:12px}
+.cmd .h b{font:400 15px/1.4 var(--serif);font-weight:400}
+.cmd .h .t{margin-left:auto;font:11px/1 var(--mono);color:var(--ink-3)}
+.cmd pre{margin:0;font:12px/1.9 var(--mono);color:var(--ink-2);
+  white-space:pre-wrap;word-break:break-all}
+
+.lhead{display:flex;align-items:baseline;gap:14px;padding:40px 0 14px;
+  border-bottom:1px solid var(--line)}
+.lhead h2{font:400 19px/1.4 var(--serif);margin:0}
+.lhead .cnt{margin-left:auto;font:11.5px/1 var(--mono);color:var(--ink-3)}
+.lrow{display:grid;grid-template-columns:12px 1fr auto 16px;gap:16px;
+  align-items:center;padding:17px 0;border-bottom:1px solid #E2DCD1;
+  text-decoration:none;color:inherit}
+.lrow:hover .lhost{color:var(--clay)}
+.lrow .dot{margin-top:0}
+.lhost{font:400 17px/1.45 var(--serif);transition:color .12s}
+.lsub{font:11.5px/1.8 var(--mono);color:var(--ink-3);margin-top:3px}
+.lsub i{font-style:normal;color:var(--ink-2)}
+.lstat{font-size:11.5px;line-height:1.5;text-align:right;white-space:nowrap}
+.lstat em{display:block;font:11px/1.7 var(--mono);color:var(--ink-3);font-style:normal}
+.arw{color:#C9C3B6;font:12px/1 var(--mono)}
+.empty{padding:34px 0;color:var(--ink-3);font-size:13px;line-height:1.9;
+  border-bottom:1px solid var(--line)}
+
+@media(max-width:820px){
+  .hero{grid-template-columns:1fr;gap:22px}
+  .stat{text-align:left}
+  .steps{grid-template-columns:1fr;gap:22px}
+  .step{padding:0;border-left:0}
+  .lrow{grid-template-columns:12px 1fr;row-gap:6px}
+  .lstat{grid-column:2;text-align:left}
+  .arw{display:none}
+}
+"""
+
+
+def build_index(entries, mode="all"):
+    """首页 / 单个 PR 的报告索引。与报告页共用同一套 token 与字体。"""
+    n_ep = len({e.get("host") for e in entries if e.get("host")})
+    n_pass = sum(1 for e in entries if e.get("verdict") == "basic_passed")
+    n_err = sum(1 for e in entries if e.get("tone") == "err")
+
+    if mode == "single":
+        title = f"PR #{entries[0]['pr']} 的验证报告" if entries else "未找到报告"
+        h1 = title
+        lede = ("这个 PR 提交的 MQ 报告。报告由提交者在本机运行得出，"
+                "本站只存档与呈现，不接收 Key、不代跑探针。")
+    else:
+        h1 = "验证报告索引"
+        lede = ("中转站质量由提交者在自己机器上实测，报告公开、命令可复现、"
+                "判断留给读者。本站不做评分，也不代替你决定用不用。")
+
+    if entries:
+        stat_block = (f'<div class="stat"><b>{len(entries)}</b>份报告'
+                      f'<span class="k">{n_ep} 个端点 · {n_pass} 通过</span></div>')
+    else:
+        stat_block = '<div class="stat"><b>0</b>份报告<span class="k">—</span></div>'
+
+    rows = []
+    for e in entries:
+        tone = e.get("tone") or "info"
+        fam = FAMILY_ZH.get(e.get("family") or "", e.get("family") or "")
+        fam_txt = f'<i>{esc(fam)}</i> · ' if fam else ""
+        eng = esc(e.get("engine") or "?")
+        mode_txt = f' · {esc(e["mode"])}' if e.get("mode") else ""
+        rows.append(
+            f'<a class="lrow" href="{esc(e["url"])}">'
+            f'<span class="dot {tone}"></span>'
+            f'<div><div class="lhost">{esc(e.get("host") or "—")}</div>'
+            f'<div class="lsub">{fam_txt}'
+            f'PR #{esc(e.get("pr"))} · <i>{esc(e.get("when") or e.get("ts"))}</i> · '
+            f'引擎 {eng}{mode_txt}</div></div>'
+            f'<div class="lstat"><span class="sw {tone}">'
+            f'{esc(PILL_ZH.get(e.get("verdict"), e.get("verdict") or ""))}</span>'
+            f'<em>{esc(e.get("n_pass"))}/{esc(e.get("total"))} 项</em></div>'
+            f'<span class="arw">→</span></a>\n')
+    if not rows:
+        body = ('<div class="empty">还没有任何报告。提交一份 PR，在本机跑 '
+                '<code>mq.py</code>，把报告贴进 PR 即可。'
+                '—— 报告会出现在这里。</div>')
+    else:
+        body = "".join(rows)
+
+    head = f'<div class="lhead"><h2>报告</h2><span class="cnt">{len(entries)} 份</span></div>'
+    if n_err:
+        head = (f'<div class="lhead"><h2>报告</h2>'
+                f'<span class="cnt">{len(entries)} 份 · {n_err} 份未通过</span></div>')
+
+    repro_cmd = (
+        "curl -fsSL https://raw.githubusercontent.com/cfrs2005/"
+        "awesome-claude-code-relay/main/mq/mq.py -o mq.py\n"
+        "python3 mq.py --base-url https://api.example.com --key sk-你的key \\\n"
+        "  --model <你声明的模型> --mode standard"
+    )
+
+    return f"""<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RelayQuality — {esc(h1)}</title>
+<style>{font_css()}{CSS}{INDEX_CSS}</style></head><body>
+
+<header class="topbar"><div class="wrap">
+  <span class="brand">RelayQuality</span>
+  <span class="nav"><a href="https://github.com/cfrs2005/awesome-claude-code-relay">目录仓库 ↗</a></span>
+  <span class="host">mq.80aj.com</span>
+</div></header>
+
+<main class="wrap">
+
+<section class="hero">
+  <div>
+    <h1>{esc(h1)}</h1>
+    <p class="lede">{esc(lede)}</p>
+  </div>
+  {stat_block}
+</section>
+
+<section class="steps">
+  <div class="step"><div class="n">01</div><h3>在本机跑</h3>
+    <p>用 <code>mq.py</code> 打自己的端点。Key 只留在你的机器上，本站不接收、不代跑。</p></div>
+  <div class="step"><div class="n">02</div><h3>把报告贴进 PR</h3>
+    <p>报告首行带一段看不见的机器可读块，Action 据此做确定性核验：端点一致、时效、结论。</p></div>
+  <div class="step"><div class="n">03</div><h3>评论 /mq-done</h3>
+    <p>四项全过才自动合并。AI 只做解读，不参与放行判定。</p></div>
+</section>
+
+<div class="cmd">
+  <div class="h"><b>怎么跑</b><span class="t">Python 3.8+ · 只用标准库</span></div>
+  <pre>{esc(repro_cmd)}</pre>
+</div>
+
+{head}
+{body}
+
+<footer>
+  <div>收录 ≠ 推荐，验证通过 ≠ 安全。报告只描述某一次探针观测到的结果，
+    不能证明服务商不留存请求、也不能证明底层模型来自官方。</div>
+  <div class="r">MQ 引擎 · 报告存档<br>判断留给读者</div>
+</footer>
+</main></body></html>"""
+
+
 def icon(path):
     return f'<svg viewBox="0 0 24 24" aria-hidden="true"><path d="{path}"/></svg>'
 
