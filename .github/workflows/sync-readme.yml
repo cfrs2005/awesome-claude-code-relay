@@ -42,6 +42,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
           REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ inputs.pr }}
         run: |
           set -euo pipefail
           pr="${{ inputs.pr }}"
@@ -80,8 +81,13 @@ jobs:
               sys.exit(0)
 
           r = max(reports, key=lambda d: d.get("tested_at") or "")
-          files = subprocess.run(["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", "providers/"],
-                                 capture_output=True, text=True).stdout.split()
+          # 按 PR 的变更文件集合定位目标条目，而不是 HEAD~1..HEAD。
+          # 手动触发时没有新提交，diff 方式会拿不到任何文件。
+          files = subprocess.run(
+              ["gh", "pr", "view", os.environ.get("PR_NUMBER", "0"),
+               "--repo", os.environ.get("REPO", ""), "--json", "files",
+               "--jq", ".files[].path"],
+              capture_output=True, text=True).stdout.split()
           target = next((f for f in files if f.endswith(".json") and f != "providers/schema.json"), None)
           if not target:
               print("未能在本次提交中定位 providers/*.json，跳过")
@@ -95,7 +101,6 @@ jobs:
                           "--engine", r.get("engine") or "",
                           "--report-url", pr_url], check=True)
           print(f"回写 {target}: {verdict}（报告 {r.get('report_id')} / {r.get('tested_at')}）")
-          EOF
           EOF
 
       - name: Rebuild providers table
