@@ -12,7 +12,7 @@
   "notes": "支持 ChatGPT / Claude Code（Claude Code 端点默认模型 gpt-6.1-luna）",
   "added_at": "2026-11-04",
   "verification": {
-    "status": "unverified",
+    "status": "pending",
     "last_verified_at": null,
     "engine_version": null,
     "report_url": null
