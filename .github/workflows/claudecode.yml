@@ -2,7 +2,9 @@ name: Claude Code
 
 # GLM 驱动的 Claude Code Action：
 #  - @claude 提及 → 交互式指令（问答 / 分析 / 复核报告）
-#  - providers/** 的 PR 打开时 → 自动收录分诊（仅建议，无合并权限）
+#  - providers/** 的 PR 打开时 → 自动收录分诊
+#  - 提交者贴完 MQ 报告并评论 /mq-done 时 → 重点解读报告内容
+#  仅建议，无合并权限。放行判定一律由 providers-check 的确定性校验完成。
 #
 # 所需 Secrets（仓库 Settings → Secrets → Actions）:
 #   ANTHROPIC_BASE_URL : GLM 的 Anthropic 兼容端点，如 https://open.bigmodel.cn/api/anthropic
@@ -55,9 +57,15 @@ jobs:
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.GLM_API_KEY }}
 
-  # PR 打开即自动分诊：中文结论 + 推广参数标记（advisory only）
+  # PR 分诊 + MQ 报告解读（advisory only，无合并权限）
+  # 两个时机：PR 打开时先看条目；提交者贴完报告评论 /mq-done 时重点解读报告。
   pr-triage:
-    if: github.event_name == 'pull_request'
+    if: |
+      (github.event_name == 'pull_request') ||
+      (github.event_name == 'issue_comment'
+       && github.event.issue.pull_request != null
+       && github.event.comment.user.type != 'Bot'
+       && startsWith(github.event.comment.body, '/mq-done'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -82,18 +90,78 @@ jobs:
         env:
           ANTHROPIC_BASE_URL: ${{ secrets.ANTHROPIC_BASE_URL }}
           ANTHROPIC_AUTH_TOKEN: ${{ secrets.GLM_API_KEY }}
+          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number }}
+          REPO: ${{ github.repository }}
         with:
           prompt: |
             你是「Claude Code 中转站社区目录」的收录分诊助手。本仓库原则：无 AFF、
             收录不等于推荐、验证通过不等于安全。
 
-            请审查当前 PR 并用中文输出结构化结论（发布为 PR 评论）：
-            1. 变更范围：是否只修改了 providers/*.json（修改 workflow/脚本/README 的 PR 必须提示需维护者人工审查）。
-            2. 推广参数：逐个检查新增字符串里的 URL 是否含 aff/invite/ref/ic/code 等推广或返利参数，
-               发现即在标题标注「🚨 疑似推广参数」，这是本项目的一票否决项。
-            3. 字段合规：对照 providers/schema.json 与 CLAUDE.md 中的收录规则检查字段。
-            4. 明显可疑信号：website 与服务商名对不上、api_base 与官网域名毫无关联等。
-            5. 提交者是否已 Watch 本仓库无法由你判断，提醒其阅读 PR 模板自检清单即可。
+            当前 PR 号在环境变量 `$PR_NUMBER`，仓库在 `$REPO`。
 
-            重要约束：你的结论仅供参考，不能替代 Providers Check 工作流的确定性校验；
-            你没有任何合并权限，也绝不要建议绕过校验流程。
+            ## 第一步：取证据（必须真的执行命令，不要凭 PR 标题猜测）
+
+            ```
+            gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""'
+            gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" --jq '.[].body'
+            git diff origin/${{ github.event.repository.default_branch }}...HEAD -- providers/
+            ```
+
+            找到正文以 `# MQ 验证报告 —` 开头的评论，那就是提交者贴的 MQ 实测报告。
+            报告第一行有一段 `<!--MQ-REPORT:...-->` 的不可见块，不要试图解码它，
+            直接读报告正文（四组表格）即可。
+
+            ## 第二步：解读 MQ 报告（这是本次分诊的重点）
+
+            如果 PR 里**没有**报告：直接说「还没有 MQ 报告」，然后只做第三步，
+            不要在缺少证据的情况下推测端点质量。
+
+            如果有报告，按下面四组逐条解读。每条写「看到了什么」+「这意味着什么」，
+            用自己的话，**不要照抄表格**。
+
+            1. **模型目录** —— 最重要的一组。
+               - 声明模型 `X` 在不在 `/v1/models` 返回的列表里？
+               - 目录的家族构成是什么（claude / gpt / glm / qwen …）？
+                 ⚠️ 一个声明提供 Claude 的端点，如果目录里 claude 系数量为 0、
+                 或家族构成与声明不符，这是全份报告里最严重的信号，必须放在最前面讲。
+               - 报告里有「与上次目录对比」时，说明模型集合有没有变、家族有没有翻转。
+
+            2. **端点可用性** —— 看 HTTP 状态码的性质，不要笼统说「失败」：
+               - 5xx / 无响应 → 端点或它的上游挂了，这次测试什么也没证明。
+               - 401 / 403 → Key 无效或无权限，不是服务商的问题。
+               - 404 + 模型不存在 → PR 声明的模型本身就是假的。
+               - 200 但结构残缺 → 才是真正的「协议不对」。
+
+            3. **协议兼容性** —— 流式事件序列是否完整（Claude Code 强依赖 SSE）、
+               system 是否透传、tool_use 回合能不能闭环。
+               注意 thinking 项标 INFO 属正常，端点可以不支持，不要当成缺陷。
+
+            4. **身份证据** —— tokenizer 计数是否恒定、count_tokens 是否可用、
+               与官方对照是否一致。「模型自述」一律视为无证据力，
+               绝不要因为模型自称 Claude 就说它是真的。
+
+            ## 第三步：条目本身
+
+            - 变更范围：是否只改了 providers/*.json。动了 workflow / 脚本 / README 的，
+              必须明确写「需要维护者人工审查」。
+            - 推广参数：逐个 URL 检查 aff / invite / ref / ic / code 等参数，
+              命中就标「🚨 疑似推广参数」，这是一票否决项。
+            - 字段合规：对照 providers/schema.json。
+            - 可疑信号：website 与服务商名对不上、api_base 与官网域名毫无关联、
+              声明的模型与目录完全对不上。
+
+            ## 输出格式
+
+            1. 开头一句话：这份报告说明了什么（有报告时），或「尚无报告」。
+            2. 「⚠️ 值得注意」：最多 5 条，按严重程度排序，每条一行。
+            3. 「条目检查」：按第三步逐项列。
+            4. 结尾固定写一句：**以上解读仅供参考，不改变 Providers Check 的确定性核验结果。**
+
+            ## 硬性约束
+
+            - 你没有任何合并权限，也不要建议绕过校验。
+            - 不要建议提交者把 Key 发给任何人或任何服务端 —— 本仓库的流程是
+              Key 只留在提交者自己的机器上。
+            - 报告里如果出现 Key 片段，不要复述。
+            - 不要修改 PR 里的报告、不要编辑 providers 文件。

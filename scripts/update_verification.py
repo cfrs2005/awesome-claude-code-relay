@@ -11,7 +11,15 @@ import json
 import pathlib
 import sys
 
-ALLOWED = {"unverified", "pending", "basic_passed", "behavior_anomaly", "identity_suspect", "inconclusive"}
+ALLOWED = {
+    # 保留值
+    "unverified", "pending", "inconclusive",
+    # MQ v0.2.0 结论枚举
+    "basic_passed", "endpoint_unreachable", "auth_rejected", "model_not_found",
+    "protocol_incompatible", "behavior_anomaly", "identity_suspect",
+    # 历史值（旧报告仍可能出现）
+    "evidence_insufficient",
+}
 
 
 def main():

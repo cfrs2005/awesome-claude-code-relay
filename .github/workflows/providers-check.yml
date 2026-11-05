@@ -3,13 +3,18 @@ name: Providers Check
 # 收录 PR 的确定性校验 + 合并执行器。自动合并的唯一依据；Claude/GLM 的分诊结论仅供参考。
 #
 # 触发:
-#   pull_request (providers/**)      → 常规校验（Hub 验证未通过时在门禁处失败）
-#   issue_comment 包含 /mq-done      → Hub 验证完成后由提交者触发，全绿即直接 squash 合并
+#   pull_request (providers/**)      → 常规校验（PR 里没有合格 MQ 报告时在门禁处不合并）
+#   issue_comment 包含 /mq-done      → 提交者补了报告或想重新检查时触发
+#
+# MQ 报告门禁（NQ 式）:
+#   提交者在**自己机器上**跑 MQ 引擎，把报告全文贴到 PR。本工作流只核验三件确定性的事：
+#   ①报告存在且可解析 ②报告 host == 条目 api_base host ③报告未过期且结论合格。
+#   三项全过即自动合并。不需要绑定码、不需要提交 Key 给任何服务端。
 #
 # 前置要求（一次性）:
 #   - Settings → General → Allow squash merge（API 可配）
 #   - 分支保护 required check: providers-check（API 可配）
-#   - Secrets: MQ_HUB_URL / MQ_HUB_TOKEN（Hub 注册与门禁）、MQ_BOT_TOKEN（fork PR 评论与合并）
+#   - Secrets: MQ_BOT_TOKEN（fork PR 评论与合并，建议用专用 bot 账号）
 
 on:
   pull_request:
@@ -90,49 +95,57 @@ jobs:
             echo "❌ @$PR_AUTHOR 尚未 Watch 本项目（$REPO 的 subscribers 列表中未找到）"
           fi
 
-      # MQ Hub 验证门禁：新收录条目必须完成 Hub 验证（mq-manual 标签绕过 + 禁用自动合并）
-      - name: MQ Hub verification gate
-        id: hub
+      # MQ 实测报告门禁（NQ 式）：
+      #   提交者在自己机器上跑 MQ，把报告贴进 PR。这里只做三件确定性的事——
+      #   报告存在、报告 host == 条目 api_base host（防测 A 卖 B）、报告未过期且结论合格。
+      #   三项全过即放行自动合并；任何一项不过都不合并，并给出重测指引。
+      #   mq-manual 标签绕过，转人工合并。
+      - name: MQ report gate
+        id: mq
         env:
           GH_TOKEN: ${{ github.token }}
-          HUB_URL: ${{ secrets.MQ_HUB_URL }}
-          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
         run: |
           set -euo pipefail
           labels=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.labels[].name' || true)
           if printf '%s\n' "$labels" | grep -qx 'mq-manual'; then
-            echo "hub-gate=skipped" >> "$GITHUB_OUTPUT"
-            echo "mq-manual 标签：跳过 Hub 门禁，本 PR 转人工合并（本工作流不执行合并）"
+            echo "mq-state=manual" >> "$GITHUB_OUTPUT"
+            echo "mq-manual 标签：跳过 MQ 报告门禁，本 PR 转人工合并"
             exit 0
           fi
-          if [ -z "$HUB_URL" ] || [ -z "$HUB_TOKEN" ]; then
-            echo "hub-gate=unconfigured" >> "$GITHUB_OUTPUT"
-            echo "::warning::MQ_HUB_URL / MQ_HUB_TOKEN 未配置，Hub 门禁未生效"
-            exit 0
-          fi
-          echo "hub-gate=checked" >> "$GITHUB_OUTPUT"
-          code=$(curl -sS -m 20 -o /tmp/hub.json -w '%{http_code}' \
-            -H "X-Hub-Token: $HUB_TOKEN" "$HUB_URL/api/prs/$PR_NUMBER") || code=000
-          if [ "$code" != "200" ]; then
-            echo "::error::Hub 不可达（HTTP $code）。验证服务暂不可用时不自动合并；维护者可打 mq-manual 标签转人工"
-            exit 1
-          fi
-          python3 scripts/hub_gate.py /tmp/hub.json
 
-      - name: Repost verification report (on /mq-done)
-        if: github.event_name == 'issue_comment'
+          # 把 PR 正文和所有评论拼成一份文本，供脚本查找机器可读块
+          {
+            gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""' || true
+            echo
+            gh api --paginate "repos/$REPO/issues/$PR_NUMBER/comments" --jq '.[].body' || true
+          } > /tmp/pr_text.txt
+          echo "PR 文本长度: $(wc -c < /tmp/pr_text.txt) 字节"
+
+          set +e
+          python3 scripts/check_mq_report.py \
+            --text /tmp/pr_text.txt \
+            --base origin/main \
+            --head pr-head \
+            --summary-file /tmp/mq_summary.md \
+            --json-out /tmp/mq_result.json
+          rc=$?
+          set -e
+          state=$(python3 -c "import json;print(json.load(open('/tmp/mq_result.json'))['state'])")
+          echo "mq-state=$state" >> "$GITHUB_OUTPUT"
+          echo "报告核验状态: $state"
+          if [ "$rc" != "0" ]; then
+            echo "::warning::MQ 报告核验未通过（state=$state），本 PR 不会自动合并"
+          fi
+          exit 0
+
+      - name: Publish MQ report summary
+        if: always()
         env:
           GH_TOKEN: ${{ env.PR_TOKEN }}
-          HUB_URL: ${{ secrets.MQ_HUB_URL }}
-          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
         run: |
           set -euo pipefail
-          url=$(python3 -c "import json;d=json.load(open('/tmp/hub.json'));print((d.get('result') or {}).get('report_url') or '')")
-          if [ -n "$url" ]; then
-            curl -fsS -m 20 "$url" -o /tmp/report.md && \
-            { echo "## 📋 MQ 验证报告（合并前存档）"; echo; cat /tmp/report.md; } > /tmp/report_full.md && \
-            python3 -c "import pathlib;p=pathlib.Path('/tmp/report_full.md');p.write_text(p.read_text(encoding='utf-8').replace('/mq-done','/mq\u200b-done'),encoding='utf-8')" && \
-            gh pr comment "$PR_NUMBER" --body-file /tmp/report_full.md || echo "报告回贴跳过"
+          if [ -f /tmp/mq_summary.md ]; then
+            cat /tmp/mq_summary.md >> "$GITHUB_STEP_SUMMARY" || true
           fi
 
       # 结果评论用"就地更新"而非每次新发：即使逻辑再出问题，PR 上也只有一条评论
@@ -142,24 +155,44 @@ jobs:
           GH_TOKEN: ${{ env.PR_TOKEN }}
           VALIDATED: ${{ steps.validate.outcome }}
           WATCHED: ${{ steps.watch.outputs.watched }}
-          HUB_GATE: ${{ steps.hub.outcome }}
-          HUB_MODE: ${{ steps.hub.outputs.hub-gate }}
+          MQ_STATE: ${{ steps.mq.outputs.mq-state }}
         run: |
           set -euo pipefail
-          if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ] && { [ "$HUB_MODE" = "skipped" ] || [ "$HUB_GATE" = "success" ]; }; then
-            body="✅ **Providers Check 全部通过**
-          - 条目校验 / Watch 检查 / Hub 门禁均通过$( [ "$HUB_MODE" = "skipped" ] && echo '（mq-manual：转人工合并）' || echo '' )
-          - $( [ "$HUB_MODE" = "skipped" ] && echo '请维护者手动合并' || echo '正在合并…' )"
+          if [ "$VALIDATED" = "success" ] && [ "$WATCHED" = "true" ] \
+             && { [ "$MQ_STATE" = "ok" ] || [ "$MQ_STATE" = "manual" ] \
+                  || [ "$MQ_STATE" = "not_applicable" ]; }; then
+            if [ "$MQ_STATE" = "manual" ]; then
+              body="✅ **可以合并**（mq-manual：转人工）
+          - 条目校验、Watch 检查通过；MQ 报告门禁已由维护者跳过
+          - 请维护者手动合并"
+            else
+              body="✅ **全部通过，正在自动合并**
+          - 条目校验、Watch 检查、MQ 报告核验均通过"
+            fi
           else
             reason=""
             [ "$VALIDATED" != "success" ] && reason="${reason}条目校验未通过；"
             [ "$WATCHED" != "true" ] && reason="${reason}提交者未 Watch 项目；"
-            [ "$HUB_GATE" != "success" ] && [ "$HUB_MODE" != "skipped" ] && reason="${reason}Hub 验证未通过（完成验证后评论 /mq-done）；"
-            body="❌ **Providers Check 未通过**：${reason:-未知}
-          详情见 Checks → providers-check 的 Summary。"
+            case "$MQ_STATE" in
+              missing)         reason="${reason}PR 里还没有 MQ 测试报告；" ;;
+              no_declared_base) reason="${reason}条目缺少 api_base；" ;;
+              host_mismatch)   reason="${reason}报告测的端点与条目声明的 api_base 不一致；" ;;
+              stale)           reason="${reason}MQ 报告已过期，请重跑；" ;;
+              retest)          reason="${reason}上次测试没有做成，请重跑；" ;;
+              failed)          reason="${reason}MQ 报告结论不通过；" ;;
+              bad_timestamp)   reason="${reason}报告时间戳异常；" ;;
+              ""|manual)       ;;
+              *)               reason="${reason}MQ 报告核验异常（$MQ_STATE）；" ;;
+            esac
+            body="⏳ **暂不合并**：${reason:-未知原因}
+
+          下面是对报告的具体核验结果。按提示补一份 MQ 测试报告后，评论 \`/mq-done\` 重新检查。"
           fi
-          # 标记 + 正文写文件；正文中出现的 /mq-done 字样不会被触发（触发条件要求以它开头）
-          printf '%s\n\n<!-- providers-check-result -->\n' "$body" > /tmp/result.md
+          {
+            printf '%s\n\n' "$body"
+            if [ -f /tmp/mq_summary.md ]; then cat /tmp/mq_summary.md; fi
+            printf '\n<!-- providers-check-result -->\n'
+          } > /tmp/result.md
           cid=$(gh api "repos/$REPO/issues/$PR_NUMBER/comments?per_page=100" \
                   --jq '[.[] | select(.body | contains("<!-- providers-check-result -->")) | .id] | last // empty' || true)
           if [ -n "${cid:-}" ]; then
@@ -176,8 +209,7 @@ jobs:
         if: >
           steps.validate.outcome == 'success' &&
           steps.watch.outputs.watched == 'true' &&
-          steps.hub.outcome == 'success' &&
-          steps.hub.outputs.hub-gate != 'skipped'
+          steps.mq.outputs.mq-state == 'ok'
         env:
           GH_TOKEN: ${{ env.PR_TOKEN }}
         run: |

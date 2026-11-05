@@ -2,60 +2,133 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://github.com/cfrs2005/awesome-claude-code-relay/providers/schema.json",
   "title": "Provider entry",
-  "description": "Claude Code / Claude API 中转站收录条目。收录不等于推荐；任何字段不得包含推广/返利参数。",
+  "description": "AI API 中转站收录条目。默认收录 Claude 中转站，也接受 OpenAI / Gemini 中转站提交，但必须用 family 字段明确标注。收录不等于推荐；任何字段不得包含推广/返利参数。",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "name", "type", "website", "added_at", "verification"],
+  "required": [
+    "id",
+    "name",
+    "type",
+    "website",
+    "added_at",
+    "verification"
+  ],
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^[a-z0-9][a-z0-9-]{1,32}$",
       "description": "稳定 slug，与文件名一致"
     },
-    "name": { "type": "string", "minLength": 2, "maxLength": 64 },
-    "type": { "enum": ["commercial", "community"] },
+    "name": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 64
+    },
+    "type": {
+      "enum": [
+        "commercial",
+        "community"
+      ]
+    },
+    "family": {
+      "enum": [
+        "claude",
+        "openai",
+        "gemini",
+        "other"
+      ],
+      "default": "claude",
+      "description": "该端点主要提供的模型家族。默认 claude；提交 OpenAI/Gemini 中转站时必须显式填写，目录页会按此标注，读者据此判断是否适用自己的客户端"
+    },
     "website": {
       "type": "string",
       "pattern": "^https://[A-Za-z0-9.-]+\\.[A-Za-z]{2,}.*$",
       "description": "官网首页，必须 https，禁止携带 aff/invite/ref 等推广参数"
     },
     "api_base": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "pattern": "^https://[A-Za-z0-9.-]+\\.[A-Za-z]{2,}.*$",
       "description": "Anthropic 兼容端点（不含 /v1/messages），未知填 null"
     },
     "models_claimed": {
       "type": "array",
       "maxItems": 20,
-      "items": { "type": "string", "maxLength": 96 },
+      "items": {
+        "type": "string",
+        "maxLength": 96
+      },
       "description": "服务商声称提供的 model id，由提交者填写，未经核实"
     },
     "payment": {
       "type": "array",
-      "items": { "enum": ["alipay", "wechat", "card", "crypto", "free", "other"] }
+      "items": {
+        "enum": [
+          "alipay",
+          "wechat",
+          "card",
+          "crypto",
+          "free",
+          "other"
+        ]
+      }
     },
-    "price_note": { "type": "string", "maxLength": 200 },
-    "notes": { "type": "string", "maxLength": 300 },
-    "added_at": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$" },
+    "price_note": {
+      "type": "string",
+      "maxLength": 200
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 300
+    },
+    "added_at": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
     "verification": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["status"],
+      "required": [
+        "status"
+      ],
       "properties": {
         "status": {
           "enum": [
             "unverified",
             "pending",
+            "inconclusive",
+            "evidence_insufficient",
             "basic_passed",
+            "endpoint_unreachable",
+            "auth_rejected",
+            "model_not_found",
+            "protocol_incompatible",
             "behavior_anomaly",
-            "identity_suspect",
-            "inconclusive"
+            "identity_suspect"
           ],
-          "description": "unverified=未验证 pending=验证中 basic_passed=基础验证通过 behavior_anomaly=协议/行为异常 identity_suspect=模型身份存疑 inconclusive=证据不足"
+          "description": "MQ v0.2.0 结论枚举。basic_passed 只表示协议与行为特征通过，不代表模型为真或安全"
         },
-        "last_verified_at": { "type": ["string", "null"], "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$" },
-        "engine_version": { "type": ["string", "null"] },
-        "report_url": { "type": ["string", "null"] }
+        "last_verified_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:]{8}Z$"
+        },
+        "engine_version": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "report_url": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
       }
     }
   }

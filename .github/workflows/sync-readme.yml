@@ -29,35 +29,61 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Apply verification result from Hub (post-merge fixup)
+      - name: Apply verification result from PR report (post-merge fixup)
         env:
-          HUB_URL: ${{ secrets.MQ_HUB_URL }}
-          HUB_TOKEN: ${{ secrets.MQ_HUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.MQ_BOT_TOKEN || github.token }}
+          REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           msg="${{ github.event.head_commit.message }}"
           pr=$(printf '%s' "$msg" | grep -oE '#[0-9]+' | head -1 | tr -d '#')
-          if [ -z "$pr" ] || [ -z "$HUB_URL" ]; then
-            echo "无 PR 号或未配置 Hub，跳过验证回写"
+          if [ -z "$pr" ]; then
+            echo "提交信息里没有 PR 号，跳过验证回写"
             exit 0
           fi
-          code=$(curl -sS -m 20 -o /tmp/hub.json -w '%{http_code}' \
-            -H "X-Hub-Token: $HUB_TOKEN" "$HUB_URL/api/prs/$pr") || code=000
-          [ "$code" = "200" ] || { echo "Hub 查询失败($code)，跳过"; exit 0; }
+          export PR_URL="https://github.com/$REPO/pull/$pr"
+
+          # 合并后从 PR 正文 + 评论里取最新一份 MQ 报告的机器可读块
+          {
+            gh api "repos/$REPO/pulls/$pr" --jq '.body // ""' || true
+            echo
+            gh api --paginate "repos/$REPO/issues/$pr/comments" --jq '.[].body' || true
+          } > /tmp/pr_text.txt
+
           python3 - <<'EOF'
-          import json, os, subprocess, sys
-          d = json.load(open('/tmp/hub.json'))
-          r = d.get('result') or {}
-          pid = d.get('provider_id')
-          if not d.get('registered') or r.get('status') != 'completed' or not pid:
-              print('无已完成验证结果，跳过'); sys.exit(0)
-          verdict = r.get('verdict') if r.get('verified') else r.get('verdict')
-          if verdict == 'evidence_insufficient':
-              verdict = 'inconclusive'
-          f = f'providers/{pid}.json'
-          subprocess.run(['python3', 'scripts/update_verification.py', f,
-                          '--status', verdict, '--engine', r.get('engine') or '',
-                          '--report-url', r.get('report_url') or ''], check=True)
+          import base64, json, os, pathlib, re, subprocess, sys
+
+          pr_url = os.environ.get("PR_URL", "")
+          text = pathlib.Path("/tmp/pr_text.txt").read_text(encoding="utf-8", errors="replace")
+          reports = []
+          for b in re.findall(r"<!--MQ-REPORT:([A-Za-z0-9+/=]+)-->", text):
+              try:
+                  d = json.loads(base64.b64decode(b, validate=True).decode("utf-8"))
+              except Exception:
+                  continue
+              if isinstance(d, dict) and d.get("verdict") and d.get("host"):
+                  reports.append(d)
+          if not reports:
+              print("PR 里没有可解析的 MQ 报告，跳过验证回写")
+              sys.exit(0)
+
+          r = max(reports, key=lambda d: d.get("tested_at") or "")
+          files = subprocess.run(["git", "diff", "--name-only", "HEAD~1", "HEAD", "--", "providers/"],
+                                 capture_output=True, text=True).stdout.split()
+          target = next((f for f in files if f.endswith(".json") and f != "providers/schema.json"), None)
+          if not target:
+              print("未能在本次提交中定位 providers/*.json，跳过")
+              sys.exit(0)
+
+          verdict = r["verdict"]
+          if verdict == "evidence_insufficient":
+              verdict = "inconclusive"
+          subprocess.run(["python3", "scripts/update_verification.py", target,
+                          "--status", verdict,
+                          "--engine", r.get("engine") or "",
+                          "--report-url", pr_url], check=True)
+          print(f"回写 {target}: {verdict}（报告 {r.get('report_id')} / {r.get('tested_at')}）")
+          EOF
           EOF
 
       - name: Rebuild providers table

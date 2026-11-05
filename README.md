@@ -26,41 +26,41 @@
 按验证状态排序（同级按名称），**排序不代表任何推荐**。`API 端点` 由提交者填写，未经核实。
 
 <!-- providers:start -->
-| 验证状态 | 服务商 | 类型 | 官网 | API 端点（Anthropic 兼容） |
-|---|--------|:---:|------|------------------------------|
-| – 未验证 | 86GameStore | 商业 | [86gamestore.com](https://86gamestore.com) | `https://api.86gamestore.com` |
-| – 未验证 | 88code | 商业 | [www.88code.org](https://www.88code.org) | `—` |
-| – 未验证 | AICodeMirror | 商业 | [www.aicodemirror.com](https://www.aicodemirror.com) | `—` |
-| – 未验证 | AIMZ | 商业 | [mzlone.top](https://mzlone.top) | `—` |
-| – 未验证 | AI快站 AIFast | 商业 | [www.aifast.hk](https://www.aifast.hk) | `—` |
-| – 未验证 | Anyrouter | 公益 | [anyrouter.top](https://anyrouter.top) | `—` |
-| – 未验证 | Code By AI | 商业 | [www.codebyai.net](https://www.codebyai.net) | `—` |
-| – 未验证 | CodeCli | 商业 | [www.code-cli.cn](https://www.code-cli.cn) | `—` |
-| – 未验证 | CodeI Lab | 商业 | [www.codeilab.com](https://www.codeilab.com) | `—` |
-| – 未验证 | CoderPlan | 商业 | [coderplan.ai](https://coderplan.ai) | `—` |
-| – 未验证 | Cubence | 商业 | [cubence.com](https://cubence.com) | `—` |
-| – 未验证 | Duckcoding | 商业 | [duckcoding.com](https://duckcoding.com) | `https://jp.duckcoding.com` |
-| – 未验证 | EasyChat | 商业 | [easychat.site](https://easychat.site) | `—` |
-| – 未验证 | Elysiver | 商业 | [elysiver.h-e.top](https://elysiver.h-e.top) | `—` |
-| – 未验证 | FoxCode | 商业 | [foxcode.rjj.cc](https://foxcode.rjj.cc) | `—` |
-| – 未验证 | GalaxyCode | 商业 | [nf.video](https://nf.video) | `—` |
-| – 未验证 | Ikuncode | 商业 | [www.ikuncode.cc](https://www.ikuncode.cc) | `—` |
-| – 未验证 | JikeAI | 商业 | [magic666.top](https://magic666.top) | `—` |
-| – 未验证 | MikuCode | 商业 | [mikucode.xyz](https://mikucode.xyz) | `—` |
-| – 未验证 | PackyCode | 商业 | [www.packyapi.com](https://www.packyapi.com) | `—` |
-| – 未验证 | Privnode | 商业 | [privnode.com](https://privnode.com) | `—` |
-| – 未验证 | Runanytime | 商业 | [runanytime.hxi.me](https://runanytime.hxi.me) | `—` |
-| – 未验证 | SSSAiCode | 商业 | [www.sssaicode.com](https://www.sssaicode.com) | `—` |
-| – 未验证 | TeamoRouter | 商业 | [teamorouter.com](https://teamorouter.com) | `—` |
-| – 未验证 | TeapotRouter | 商业 | [teapotrouter.com](https://teapotrouter.com) | `—` |
-| – 未验证 | Twinkle Model | 商业 | [big-model.smart-agi.com](https://big-model.smart-agi.com) | `—` |
-| – 未验证 | Uucode | 商业 | [www.uucode.org](https://www.uucode.org) | `—` |
-| – 未验证 | Xyai | 商业 | [new.xychatai.com](https://new.xychatai.com) | `—` |
-| – 未验证 | YesCode | 商业 | [co.yes.vg](https://co.yes.vg) | `—` |
-| – 未验证 | 智谱 BigModel | 商业 | [bigmodel.cn/](https://bigmodel.cn/) | `https://open.bigmodel.cn/api/anthropic` |
+| 验证状态 | 服务商 | 家族 | 类型 | 官网 | API 端点 |
+|---|--------|:---:|:---:|------|------------------------------|
+| – 未验证 | 86GameStore | OpenAI ⚠️ 非 Claude | 商业 | [86gamestore.com](https://86gamestore.com) | `https://api.86gamestore.com` |
+| – 未验证 | 88code | Claude | 商业 | [www.88code.org](https://www.88code.org) | `—` |
+| – 未验证 | AICodeMirror | Claude | 商业 | [www.aicodemirror.com](https://www.aicodemirror.com) | `—` |
+| – 未验证 | AIMZ | Claude | 商业 | [mzlone.top](https://mzlone.top) | `—` |
+| – 未验证 | AI快站 AIFast | Claude | 商业 | [www.aifast.hk](https://www.aifast.hk) | `—` |
+| – 未验证 | Anyrouter | Claude | 公益 | [anyrouter.top](https://anyrouter.top) | `—` |
+| – 未验证 | Code By AI | Claude | 商业 | [www.codebyai.net](https://www.codebyai.net) | `—` |
+| – 未验证 | CodeCli | Claude | 商业 | [www.code-cli.cn](https://www.code-cli.cn) | `—` |
+| – 未验证 | CodeI Lab | Claude | 商业 | [www.codeilab.com](https://www.codeilab.com) | `—` |
+| – 未验证 | CoderPlan | Claude | 商业 | [coderplan.ai](https://coderplan.ai) | `—` |
+| – 未验证 | Cubence | Claude | 商业 | [cubence.com](https://cubence.com) | `—` |
+| – 未验证 | Duckcoding | Claude | 商业 | [duckcoding.com](https://duckcoding.com) | `https://jp.duckcoding.com` |
+| – 未验证 | EasyChat | Claude | 商业 | [easychat.site](https://easychat.site) | `—` |
+| – 未验证 | Elysiver | Claude | 商业 | [elysiver.h-e.top](https://elysiver.h-e.top) | `—` |
+| – 未验证 | FoxCode | Claude | 商业 | [foxcode.rjj.cc](https://foxcode.rjj.cc) | `—` |
+| – 未验证 | GalaxyCode | Claude | 商业 | [nf.video](https://nf.video) | `—` |
+| – 未验证 | Ikuncode | Claude | 商业 | [www.ikuncode.cc](https://www.ikuncode.cc) | `—` |
+| – 未验证 | JikeAI | Claude | 商业 | [magic666.top](https://magic666.top) | `—` |
+| – 未验证 | MikuCode | Claude | 商业 | [mikucode.xyz](https://mikucode.xyz) | `—` |
+| – 未验证 | PackyCode | Claude | 商业 | [www.packyapi.com](https://www.packyapi.com) | `—` |
+| – 未验证 | Privnode | Claude | 商业 | [privnode.com](https://privnode.com) | `—` |
+| – 未验证 | Runanytime | Claude | 商业 | [runanytime.hxi.me](https://runanytime.hxi.me) | `—` |
+| – 未验证 | SSSAiCode | Claude | 商业 | [www.sssaicode.com](https://www.sssaicode.com) | `—` |
+| – 未验证 | TeamoRouter | Claude | 商业 | [teamorouter.com](https://teamorouter.com) | `—` |
+| – 未验证 | TeapotRouter | Claude | 商业 | [teapotrouter.com](https://teapotrouter.com) | `—` |
+| – 未验证 | Twinkle Model | Claude | 商业 | [big-model.smart-agi.com](https://big-model.smart-agi.com) | `—` |
+| – 未验证 | Uucode | Claude | 商业 | [www.uucode.org](https://www.uucode.org) | `—` |
+| – 未验证 | Xyai | Claude | 商业 | [new.xychatai.com](https://new.xychatai.com) | `—` |
+| – 未验证 | YesCode | Claude | 商业 | [co.yes.vg](https://co.yes.vg) | `—` |
+| – 未验证 | 智谱 BigModel | Claude | 商业 | [bigmodel.cn/](https://bigmodel.cn/) | `https://open.bigmodel.cn/api/anthropic` |
 <!-- providers:end -->
 
-*验证状态说明见 [MQ 验证体系](#-mq-验证体系)。申请验证的入口见 [官方验证（临时 Key）](#官方验证临时-key)。*
+*验证状态说明见 [MQ 验证体系](#-mq-验证体系)。收录验证的做法见 [在你的 PR 里贴一份 MQ 报告](#-收录验证在你的-pr-里贴一份-mq-报告)。*
 
 ---
 
@@ -70,13 +70,16 @@
 
 | 维度 | 检测内容 | 结论边界 |
 |------|----------|----------|
+| 模型目录 | `GET /v1/models`：声明模型是否存在、目录家族构成（claude / gpt / glm …） | 只反映「它声称提供什么」 |
+| 目录变化 | 与上一次测试对比新增/消失的模型；**家族构成是否翻转** | 换上游最直接的信号 |
 | 协议 | Messages 结构、SSE 事件序列、system 透传、tool_use 闭环 | 结构性通过/失败 |
-| 模型指纹 | **tokenizer 计数一致性**（同请求 input_tokens 必须恒定；与官方端点对照需逐字节一致） | 目前最强的换壳证据，仍非数学证明 |
-| 身份旁证 | 自称身份、注入泄漏探测（启发式） | 仅旁证，可被上游伪造 |
+| 模型指纹 | **tokenizer 计数一致性** + `count_tokens` 指纹（与官方对照需逐字节一致） | 目前最强的换壳证据，仍非数学证明 |
+| 身份自述 | 问模型"你是谁"（启发式） | **零证据力**，只记录不参与判定 |
 | 性能 | TTFT、TPS（SSE 帧间统计）、p50/p95 延迟 | 环境相关，仅供参考 |
 | 稳定性 | 重复调用成功率与错误分类 | 快照，非长期质量 |
 
-**结论分级**：`基础验证通过` / `行为异常` / `身份存疑` / `证据不足`。
+**结论分级**：`基础验证通过` / `端点不可达` / `鉴权被拒` / `声明模型不存在` / `协议不兼容` / `行为异常` / `身份存疑`。
+「端点挂了」和「协议不对」不再共用一个标签——它们对用户意味着完全不同的处置。
 
 **明确不能证明的事**：thinking signature 字段存在 ≠ 密码学真实；任何短时测试都无法证明服务商不盗用数据。
 
@@ -99,16 +102,38 @@ python3 mq.py --base-url https://api.example.com --key sk-your-key
 4. `models_claimed` 等字段是服务商声称，未经核实；描述性字段请保持中性，不写"稳定""高速"等营销词。
 5. 自动合并的确定性依据是 **Providers Check** 工作流（schema / 推广参数 / 重复 id / URL 安全 / Watch 检查）；Claude/GLM 的分诊评论仅供参考，无合并权限。
 
-## 🔑 官方验证（临时 Key）
+## 🔑 收录验证：在你的 PR 里贴一份 MQ 报告
 
-新收录条目必须完成 MQ 官方验证，入口：**https://mq.80aj.com**
+本项目**不接收你的 Key**，也不在你背后跑测试。流程和 VPS 圈的 NodeQuality 一样：
+你自己跑、自己贴，我们只核验这份报告和 PR 声明的是不是同一个端点。
 
-1. 提 PR 后，Action 自动把 PR 声明的 `api_base` 注册到验证 Hub，并在 PR 下发这个 PR 的专属验证地址（`https://mq.80aj.com/pr/<PR号>`）
-2. **PR 作者**打开这个专属地址 → 完成绑定 → 提交**一次性临时 Key**（仅存内存，20 分钟过期，触发即焚）→ 点击运行验证
-3. 引擎在服务端执行，报告自动回贴 PR，`verification` 状态自动更新
-4. 实测端点必须与 PR 声明的 `api_base` 完全一致（防"测 A 卖 B"），验证通过 + 全部检查通过后自动合并
+1. 提 PR 后，Action 会在 PR 下发一条指引评论，里面已经填好你这个条目的 `api_base` 和 `models_claimed`
+2. 在**你自己的机器**上跑一次（Key 不离开本机）：
 
-请提交**低额度、短有效期**的专用 Key，验证完成后立即吊销。架构与安全边界：[docs/verification-design.md](docs/verification-design.md)
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/cfrs2005/awesome-claude-code-relay/main/mq/mq.py -o mq.py
+   python3 mq.py --base-url <你条目的 api_base> --key sk-your-key \
+     --model <你声明的模型> --json report.json --markdown report.md
+   ```
+
+3. 把 `report.md` **全文**贴到 PR 评论里。第一行有一段 GitHub 上不可见的机器可读块，整份复制、不要手改
+4. 评论 `/mq-done` 触发检查
+
+### 核验规则（全部确定性，没有人工主观判断）
+
+| 检查项 | 通过条件 |
+|---|---|
+| 报告存在 | PR 正文或评论里有可解析的 MQ 报告块 |
+| 端点一致 | 报告里的 host == 条目 `api_base` 的 host（防「测 A 卖 B」） |
+| 报告时效 | 测试时间在 30 天内 |
+| 结论合格 | `基础验证通过`；其余结论说明端点本身有问题，需修复后重测 |
+
+四项全过 → **自动合并**。合并后 `verification` 字段由报告自动回写。
+
+维护者认为需要人工判断时，可打 `mq-manual` 标签转人工合并。
+
+> 引擎能力与结论边界见 [mq/README.md](mq/README.md)；报告格式与设计取舍见
+> [docs/2026-11-04-mq-report-gate.md](docs/2026-11-04-mq-report-gate.md)。
 
 ## ⚙️ Claude Code 配置（通用）
 

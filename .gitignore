@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 docs-private/
 .workbuddy/
+
+# 本地跑出来的报告不入库（临时产物，且含被测端点信息）
+reports/
