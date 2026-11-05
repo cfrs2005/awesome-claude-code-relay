@@ -86,6 +86,19 @@ jobs:
         run: |
           set -euo pipefail
           echo "检查 @$PR_AUTHOR 是否已 Watch 本仓库..."
+          # 仓库 owner 与 admin 不必 Watch 自己的仓库
+          owner=$(gh api "repos/$REPO" --jq '.owner.login' 2>/dev/null || echo "")
+          perm=$(gh api "repos/$REPO/collaborators/$PR_AUTHOR/permission" --jq '.permission' 2>/dev/null || echo "none")
+          if [ -n "$owner" ] && [ "$PR_AUTHOR" = "$owner" ]; then
+            echo "watched=true" >> "$GITHUB_OUTPUT"
+            echo "✅ @$PR_AUTHOR 是仓库 owner，跳过 Watch 检查"
+            exit 0
+          fi
+          if [ "$perm" = "admin" ]; then
+            echo "watched=true" >> "$GITHUB_OUTPUT"
+            echo "✅ @$PR_AUTHOR 有 admin 权限，跳过 Watch 检查"
+            exit 0
+          fi
           watchers=$(gh api --paginate -X GET "repos/$REPO/subscribers" --jq '.[].login' || true)
           if printf '%s\n' "$watchers" | grep -qixF "$PR_AUTHOR"; then
             echo "watched=true" >> "$GITHUB_OUTPUT"
@@ -181,6 +194,7 @@ jobs:
               retest)          reason="${reason}上次测试没有做成，请重跑；" ;;
               failed)          reason="${reason}MQ 报告结论不通过；" ;;
               bad_timestamp)   reason="${reason}报告时间戳异常；" ;;
+              ok|not_applicable) ;;   # 门禁已过或本 PR 不涉及收录，不该出现在失败文案里
               ""|manual)       ;;
               *)               reason="${reason}MQ 报告核验异常（$MQ_STATE）；" ;;
             esac
