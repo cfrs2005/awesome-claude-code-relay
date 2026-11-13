@@ -1,0 +1,30 @@
+{
+  "id": "agentgate",
+  "name": "AgentGate",
+  "type": "commercial",
+  "family": "claude",
+  "website": "https://agentgate.cc",
+  "api_base": "https://agentgate.cc",
+  "models_claimed": [
+    "claude-fable-5-2",
+    "claude-fable-5-1",
+    "claude-fable-5",
+    "claude-opus-5-5",
+    "claude-opus-5",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "claude-opus-4-8",
+    "claude-opus-4-7",
+    "claude-opus-4-6"
+  ],
+  "payment": [],
+  "price_note": "按量计费，各模型价格公开在 https://agentgate.cc/pricing",
+  "notes": "同一 API Key 同时提供 Anthropic Messages、OpenAI Chat Completions / Responses 和 Gemini 协议；接入文档见 https://agentgate.cc/docs",
+  "added_at": "2026-11-13",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
