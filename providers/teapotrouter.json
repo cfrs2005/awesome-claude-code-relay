@@ -2,15 +2,27 @@
   "id": "teapotrouter",
   "name": "TeapotRouter",
   "type": "commercial",
+  "family": "claude",
   "website": "https://teapotrouter.com",
-  "api_base": null,
-  "models_claimed": [],
-  "payment": [],
-  "price_note": "",
-  "notes": "历史为『待评估』，从未验证",
+  "api_base": "https://api.teapotrouter.com",
+  "models_claimed": [
+    "claude-fable-5",
+    "claude-fable-5-2",
+    "claude-haiku-4-5",
+    "claude-opus-5",
+    "claude-opus-5-5",
+    "claude-sonnet-5",
+    "claude-sonnet-5-5"
+  ],
+  "payment": [
+    "alipay",
+    "card"
+  ],
+  "price_note": "按量计费,分组牌价:Claude 全系官方输入价×0.34、GPT 全系×0.065;价格表与机读接口 /api/pricing 公开",
+  "notes": "Anthropic 与 OpenAI 双协议网关,同一 Key 同一额度;OpenAI 兼容端点为同域 /v1。余额永不过期,按剩余余额可退。注册赠 40,000 积分体验额度,站内模型实验室可免登录实测模型",
   "added_at": "2026-11-04",
   "verification": {
-    "status": "unverified",
+    "status": "pending",
     "last_verified_at": null,
     "engine_version": null,
     "report_url": null
