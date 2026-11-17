@@ -179,6 +179,7 @@ curl "$ANTHROPIC_BASE_URL/v1/messages" \
 ## 📌 相关资源
 
 - 在线可用性监控（第三方独立面板）：https://www.80aj.com/llm-monitor/
+- Folkbench 中转站排行与实时检测：https://folkbench.com/evaluations/api-quality?utm_source=github&utm_medium=awesome&utm_campaign=awesome-claude-code-relay （用自己的 Key 检测，报告仅自己可见、密钥不保留。排序按站点规则，含合作档位和运营加权，部分数据为展示样本）
 
 ## ⭐ Star History
 
