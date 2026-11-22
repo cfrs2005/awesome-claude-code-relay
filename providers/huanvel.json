@@ -1,0 +1,27 @@
+{
+  "id": "huanvel",
+  "name": "huanvel",
+  "type": "commercial",
+  "family": "claude",
+  "website": "https://huanvel.com",
+  "api_base": "https://api.huanvel.com",
+  "models_claimed": [
+    "claude-opus-4-5",
+    "claude-sonnet-4-5",
+    "claude-haiku-4-5",
+    "gpt-6-astra"
+  ],
+  "payment": [
+    "alipay",
+    "wechat"
+  ],
+  "price_note": "按量余额 Claude 0.7x（邀请后永久 0.6x）、GPT 0.15x，缓存读 0.1x；拼车 7 天 ¥70 起（体验车 Pro 周 $140 至满配车 20x 周 $630）",
+  "notes": "支持 Anthropic（https://api.huanvel.com）与 OpenAI 兼容（https://api.huanvel.com/v1）双协议，适配 Claude Code 官方客户端与 Codex CLI，正常使用零封号风险、支持按天退款。",
+  "added_at": "2026-11-22",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
