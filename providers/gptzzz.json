@@ -1,0 +1,14 @@
+{
+  "id": "gptzzz",
+  "name": "GPTZZZ",
+  "type": "commercial",
+  "family": "claude",
+  "website": "https://gptzzz.ai",
+  "api_base": "https://gptzzz.ai",
+  "models_claimed": ["claude-haiku-4-5-20251001"],
+  "payment": ["alipay"],
+  "price_note": "按模型和分组计费，支付宝 10 元起充；价格表见 https://gptzzz.ai/pricing/ 。",
+  "notes": "此条目仅描述 Claude Messages 接口。使用 claude_kiro 分组的独立 API Key，接口路径为 /v1/messages。接入文档：https://gptzzz.ai/docs/ 。",
+  "added_at": "2026-11-24",
+  "verification": { "status": "unverified" }
+}
