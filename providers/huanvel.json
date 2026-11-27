@@ -1,0 +1,29 @@
+{
+  "id": "huanvel",
+  "name": "huanvel",
+  "type": "commercial",
+  "family": "claude",
+  "website": "https://huanvel.com",
+  "api_base": "https://api.huanvel.com",
+  "models_claimed": [
+    "claude-opus-5-5",
+    "claude-fable-5-2",
+    "claude-sonnet-5-5",
+    "claude-haiku-5-5",
+    "gpt-6-astra",
+    "grok-4.7"
+  ],
+  "payment": [
+    "alipay",
+    "wechat"
+  ],
+  "price_note": "按量余额 Grok 0.1x、GPT 0.2x/0.15x、Claude 0.7x/0.6x，缓存读 0.1x；拼车 7 天 ¥70 起（Claude 周 $140–$630，GPT 免押金周 $700–$1510）",
+  "notes": "支持 Anthropic（https://api.huanvel.com）与 OpenAI 兼容（https://api.huanvel.com/v1）双协议，Claude 车型限官方 Claude Code 客户端，GPT 车型不限客户端且免押金（Codex CLI / Cursor / Cline 均可用），正常使用不留存对话、支持按剩余天数退款。",
+  "added_at": "2026-11-22",
+  "verification": {
+    "status": "unverified",
+    "last_verified_at": null,
+    "engine_version": null,
+    "report_url": null
+  }
+}
